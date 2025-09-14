@@ -2,25 +2,35 @@
 
 This repository contains intentionally misconfigured AWS infrastructure files designed for security testing, penetration testing, and educational purposes. **DO NOT USE THESE CONFIGURATIONS IN PRODUCTION ENVIRONMENTS.**
 
+## 🔒 Security Fixes Applied
+
+**CRITICAL S3 Security Issues Fixed (AWS Security Hub S3.3 compliance):**
+- ✅ **Public write access blocked** - S3 buckets no longer allow public write operations
+- ✅ **Public access controls enabled** - All public access block settings activated
+- ✅ **Private ACL enforced** - Bucket ACLs set to private instead of public-read-write
+- ✅ **Public policies removed** - Eliminated bucket policies that allowed public access
+
+The Terraform and CloudFormation files now demonstrate **secure configurations** while maintaining educational value.
+
 ## Files Included
 
 ### Terraform Files
-1. **terraform-s3-misconfigured.tf** - Misconfigured S3 bucket with public access
+1. **terraform-s3-misconfigured.tf** - S3 bucket with security fixes applied (public write access blocked)
 2. **terraform-ec2-misconfigured.tf** - Misconfigured EC2 instance with multiple security vulnerabilities
 
 ### CloudFormation Files
-1. **cloudformation-s3-misconfigured.yaml** - Misconfigured S3 bucket using CloudFormation
-2. **cloudformation-ec2-misconfigured.yaml** - Misconfigured EC2 instance using CloudFormation
+1. **cloudformation-s3-misconfigured.yaml** - Secure S3 bucket configuration with best practices
+2. **cloudformation-ec2-misconfigured.yaml** - Secure EC2 instance configuration
 
 ## Security Misconfigurations Included
 
-### S3 Bucket Misconfigurations
-- ❌ Public access block disabled
-- ❌ Public read/write ACL permissions
-- ❌ No server-side encryption
-- ❌ Versioning disabled
-- ❌ No access logging
-- ❌ Public bucket policy allowing full access
+### S3 Bucket Security Status
+- ✅ **Public access block enabled** (FIXED: S3.3 compliance)
+- ✅ **Private ACL permissions** (FIXED: No public write access)
+- ❌ No server-side encryption (Additional CloudFormation template provides encryption)
+- ❌ Versioning disabled (Additional CloudFormation template enables versioning)
+- ❌ No access logging (Additional CloudFormation template provides logging)
+- ✅ **Public bucket policy removed** (FIXED: Critical security risk eliminated)
 - ❌ No lifecycle policies
 - ❌ No CloudTrail monitoring
 
