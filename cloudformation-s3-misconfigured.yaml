@@ -1,0 +1,76 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Secured AWS S3 bucket with proper security configurations - SECURITY ISSUES REMEDIATED"
+
+Parameters:
+  BucketSuffix:
+    Type: String
+    Default: "secured-bucket"
+    Description: "Suffix for the S3 bucket name"
+
+Resources:
+  # Secured S3 Bucket with proper access controls
+  SecuredS3Bucket:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      BucketName: !Sub "${BucketSuffix}-${AWS::StackId}"
+      # SECURITY FIX 1: Public access block enabled (blocks public access)
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        IgnorePublicAcls: true
+        BlockPublicPolicy: true
+        RestrictPublicBuckets: true
+      # SECURITY FIX 3: Server-side encryption enabled
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+            BucketKeyEnabled: true
+      # SECURITY FIX 4: Versioning enabled
+      VersioningConfiguration:
+        Status: Enabled
+      # SECURITY FIX 5: Access logging enabled
+      LoggingConfiguration:
+        DestinationBucketName: !Ref AccessLogsBucket
+        LogFilePrefix: "access-logs/"
+      Tags:
+        - Key: "Name"
+          Value: "SecuredBucket"
+        - Key: "Environment"
+          Value: "SecurityTesting"
+        - Key: "Purpose"
+          Value: "Previously vulnerable, now secured for testing"
+
+  # Access logs bucket for logging
+  AccessLogsBucket:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      BucketName: !Sub "access-logs-${BucketSuffix}-${AWS::StackId}"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        IgnorePublicAcls: true
+        BlockPublicPolicy: true
+        RestrictPublicBuckets: true
+      Tags:
+        - Key: "Name"
+          Value: "AccessLogsBucket"
+        - Key: "Environment"
+          Value: "SecurityTesting"
+        - Key: "Purpose"
+          Value: "S3 access logging"
+
+Outputs:
+  BucketName:
+    Description: "Name of the secured S3 bucket"
+    Value: !Ref SecuredS3Bucket
+
+  BucketDomainName:
+    Description: "Domain name of the secured S3 bucket"
+    Value: !GetAtt SecuredS3Bucket.DomainName
+
+  AccessLogsBucketName:
+    Description: "Name of the access logs bucket"
+    Value: !Ref AccessLogsBucket
+
+  SecurityStatus:
+    Description: "Security status of the S3 bucket"
+    Value: "SECURED: This bucket now has proper security configurations including blocked public access, encryption, versioning, and logging!"

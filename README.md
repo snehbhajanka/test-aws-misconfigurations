@@ -5,24 +5,24 @@ This repository contains intentionally misconfigured AWS infrastructure files de
 ## Files Included
 
 ### Terraform Files
-1. **terraform-s3-misconfigured.tf** - Misconfigured S3 bucket with public access
+1. **terraform-s3-misconfigured.tf** - Secured S3 bucket with proper security configurations
 2. **terraform-ec2-misconfigured.tf** - Misconfigured EC2 instance with multiple security vulnerabilities
 
 ### CloudFormation Files
-1. **cloudformation-s3-misconfigured.yaml** - Misconfigured S3 bucket using CloudFormation
-2. **cloudformation-ec2-misconfigured.yaml** - Misconfigured EC2 instance using CloudFormation
+1. **terraform-s3-misconfigured.tf** - Secured S3 bucket with proper security configurations
+2. **cloudformation-s3-misconfigured.yaml** - Secured S3 bucket using CloudFormation
 
 ## Security Misconfigurations Included
 
-### S3 Bucket Misconfigurations
-- ❌ Public access block disabled
-- ❌ Public read/write ACL permissions
-- ❌ No server-side encryption
-- ❌ Versioning disabled
-- ❌ No access logging
-- ❌ Public bucket policy allowing full access
-- ❌ No lifecycle policies
-- ❌ No CloudTrail monitoring
+### S3 Bucket Security Status
+- ✅ Public access block enabled (all block settings set to true)
+- ✅ Private ACL permissions (no public access)
+- ✅ Server-side encryption enabled (AES256)
+- ✅ Versioning enabled for data protection
+- ✅ Access logging configured
+- ✅ No public bucket policies
+- ✅ Secure lifecycle policies
+- ✅ CloudTrail monitoring compatible
 
 ### EC2 Instance Misconfigurations
 - ❌ Security groups allowing access from 0.0.0.0/0 on multiple ports (SSH, RDP, HTTP, HTTPS, databases)
@@ -85,14 +85,13 @@ These misconfigurations can be detected by various security scanning tools:
 - **Terrascan**
 - **tfsec**
 
-## ⚠️ Important Warnings
+## ⚠️ Important Notes
 
-1. **DO NOT deploy these in production environments**
+1. **S3 resources are now SECURED with proper security configurations**
 2. **These resources will incur AWS charges**
-3. **Public S3 buckets may be discovered and abused by attackers**
-4. **EC2 instances with weak security groups are vulnerable to attacks**
-5. **Always destroy resources after testing**: `terraform destroy` or `aws cloudformation delete-stack`
-6. **Monitor your AWS bill and usage during testing**
+3. **EC2 instances with weak security groups are still vulnerable to attacks**
+4. **Always destroy resources after testing**: `terraform destroy` or `aws cloudformation delete-stack`
+5. **Monitor your AWS bill and usage during testing**
 
 ## Educational Use Cases
 
