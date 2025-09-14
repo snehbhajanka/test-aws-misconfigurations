@@ -15,12 +15,12 @@ This repository contains intentionally misconfigured AWS infrastructure files de
 ## Security Misconfigurations Included
 
 ### S3 Bucket Misconfigurations
-- ❌ Public access block disabled
-- ❌ Public read/write ACL permissions
+- ✅ Public access block enabled (BlockPublicAcls, IgnorePublicAcls, BlockPublicPolicy, RestrictPublicBuckets = true)
+- ✅ Private ACL permissions (no public read/write access)
 - ❌ No server-side encryption
 - ❌ Versioning disabled
 - ❌ No access logging
-- ❌ Public bucket policy allowing full access
+- ✅ Secure bucket policy denying public access
 - ❌ No lifecycle policies
 - ❌ No CloudTrail monitoring
 
