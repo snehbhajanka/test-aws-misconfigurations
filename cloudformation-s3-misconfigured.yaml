@@ -1,0 +1,70 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "S3 bucket with security configurations fixed - blocking public write access"
+
+Parameters:
+  BucketSuffix:
+    Type: String
+    Default: "secure-test-bucket"
+    Description: "Suffix for the S3 bucket name"
+
+Resources:
+  # Secure S3 Bucket
+  SecureS3Bucket:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      BucketName: !Sub "${BucketSuffix}-${AWS::AccountId}-${AWS::Region}"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        IgnorePublicAcls: true
+        BlockPublicPolicy: true
+        RestrictPublicBuckets: true
+      AccessControl: "Private"
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: "AES256"
+            BucketKeyEnabled: true
+      VersioningConfiguration:
+        Status: "Enabled"
+      LoggingConfiguration:
+        DestinationBucketName: !Ref AccessLogsBucket
+        LogFilePrefix: "access-logs/"
+      Tags:
+        - Key: "Name"
+          Value: "SecureS3Bucket"
+        - Key: "Environment"
+          Value: "SecurityTesting"
+        - Key: "Purpose"
+          Value: "Security fixed - no public access"
+
+  # Separate bucket for access logs
+  AccessLogsBucket:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      BucketName: !Sub "${BucketSuffix}-access-logs-${AWS::AccountId}-${AWS::Region}"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        IgnorePublicAcls: true
+        BlockPublicPolicy: true
+        RestrictPublicBuckets: true
+      AccessControl: "LogDeliveryWrite"
+
+Outputs:
+  BucketName:
+    Description: "Name of the secure S3 bucket"
+    Value: !Ref SecureS3Bucket
+    Export:
+      Name: !Sub "${AWS::StackName}-BucketName"
+
+  BucketArn:
+    Description: "ARN of the secure S3 bucket"
+    Value: !GetAtt SecureS3Bucket.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-BucketArn"
+
+  SecurityStatus:
+    Description: "Security status of the bucket"
+    Value: "SECURE: Public write access is blocked, encryption enabled, versioning enabled"
+    Export:
+      Name: !Sub "${AWS::StackName}-SecurityStatus"
