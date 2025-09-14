@@ -1,0 +1,107 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Secure S3 Bucket Configuration - Addresses S3.3 Security Control'
+
+Parameters:
+  BucketNamePrefix:
+    Type: String
+    Default: 'my-secure-cf-bucket'
+    Description: 'Prefix for the S3 bucket name'
+
+Resources:
+  # Secure S3 Bucket
+  SecureS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub '${BucketNamePrefix}-${AWS::AccountId}-${AWS::Region}'
+      AccessControl: Private
+      
+      # SECURITY FIX 1: Block all public access
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      
+      # SECURITY FIX 2: Enable server-side encryption
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+            BucketKeyEnabled: true
+      
+      # SECURITY FIX 3: Enable versioning
+      VersioningConfiguration:
+        Status: Enabled
+      
+      # SECURITY FIX 4: Enable access logging
+      LoggingConfiguration:
+        DestinationBucketName: !Ref SecureS3Bucket
+        LogFilePrefix: 'access-logs/'
+      
+      # SECURITY FIX 5: Add lifecycle policy
+      LifecycleConfiguration:
+        Rules:
+          - Id: SecureLifecycleRule
+            Status: Enabled
+            NoncurrentVersionExpirationInDays: 90
+            AbortIncompleteMultipartUpload:
+              DaysAfterInitiation: 7
+      
+      Tags:
+        - Key: Name
+          Value: SecureS3Bucket
+        - Key: Environment
+          Value: Production
+        - Key: Purpose
+          Value: Demonstrates secure S3 configuration
+        - Key: Compliance
+          Value: S3.3-Compliant
+
+  # SECURITY FIX 6: Secure bucket policy - NO public write access
+  SecureS3BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref SecureS3Bucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: DenyPublicWriteAccess
+            Effect: Deny
+            Principal: '*'
+            Action:
+              - 's3:PutObject'
+              - 's3:DeleteObject'
+              - 's3:PutObjectAcl'
+              - 's3:PutBucketAcl'
+            Resource:
+              - !Sub '${SecureS3Bucket}/*'
+              - !Ref SecureS3Bucket
+          - Sid: AllowAuthenticatedAccess
+            Effect: Allow
+            Principal:
+              AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:root'
+            Action:
+              - 's3:GetObject'
+              - 's3:PutObject'
+              - 's3:DeleteObject'
+              - 's3:ListBucket'
+            Resource:
+              - !Sub '${SecureS3Bucket}/*'
+              - !Ref SecureS3Bucket
+
+Outputs:
+  SecureBucketName:
+    Description: 'Name of the secure S3 bucket'
+    Value: !Ref SecureS3Bucket
+    
+  SecureBucketDomainName:
+    Description: 'Domain name of the secure S3 bucket'
+    Value: !GetAtt SecureS3Bucket.DomainName
+    
+  SecurityCompliance:
+    Description: 'Security compliance status'
+    Value: '✅ This bucket is properly configured to block public write access (S3.3 compliant)'
+    
+  PublicAccessBlockStatus:
+    Description: 'Public access block configuration status'
+    Value: 'All public access blocks enabled: BlockPublicAcls=true, BlockPublicPolicy=true, IgnorePublicAcls=true, RestrictPublicBuckets=true'

@@ -1,0 +1,77 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Intentionally Misconfigured S3 Bucket - FOR SECURITY TESTING ONLY'
+
+Parameters:
+  BucketNamePrefix:
+    Type: String
+    Default: 'my-misconfigured-cf-bucket'
+    Description: 'Prefix for the S3 bucket name'
+
+Resources:
+  # Misconfigured S3 Bucket with public access
+  MisconfiguredS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub '${BucketNamePrefix}-${AWS::AccountId}-${AWS::Region}'
+      AccessControl: PublicReadWrite
+      
+      # MISCONFIGURATION 1: Public access block disabled (allows public access)
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
+      
+      # MISCONFIGURATION 2: No server-side encryption
+      # (Default encryption is intentionally not configured)
+      
+      # MISCONFIGURATION 3: No versioning enabled
+      VersioningConfiguration:
+        Status: Suspended
+      
+      # MISCONFIGURATION 4: No access logging
+      # (Logging is intentionally not configured)
+      
+      # MISCONFIGURATION 5: No lifecycle policies
+      # (Lifecycle policies are intentionally not configured)
+      
+      Tags:
+        - Key: Name
+          Value: MisconfiguredS3Bucket
+        - Key: Environment
+          Value: SecurityTesting
+        - Key: Purpose
+          Value: Intentionally vulnerable for testing
+
+  # MISCONFIGURATION 6: Public bucket policy allowing full access
+  MisconfiguredS3BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref MisconfiguredS3Bucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: PublicReadWrite
+            Effect: Allow
+            Principal: '*'
+            Action:
+              - 's3:GetObject'
+              - 's3:PutObject'
+              - 's3:DeleteObject'
+              - 's3:ListBucket'
+            Resource:
+              - !Sub '${MisconfiguredS3Bucket}/*'
+              - !Ref MisconfiguredS3Bucket
+
+Outputs:
+  MisconfiguredBucketName:
+    Description: 'Name of the misconfigured S3 bucket'
+    Value: !Ref MisconfiguredS3Bucket
+    
+  MisconfiguredBucketDomainName:
+    Description: 'Domain name of the misconfigured S3 bucket'
+    Value: !GetAtt MisconfiguredS3Bucket.DomainName
+    
+  SecurityWarnings:
+    Description: 'Security warnings'
+    Value: 'WARNING: This bucket is intentionally misconfigured with public access, no encryption, and no versioning!'
