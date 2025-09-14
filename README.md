@@ -5,24 +5,24 @@ This repository contains intentionally misconfigured AWS infrastructure files de
 ## Files Included
 
 ### Terraform Files
-1. **terraform-s3-misconfigured.tf** - Misconfigured S3 bucket with public access
+1. **terraform-s3-misconfigured.tf** - ✅ **SECURITY FIXED**: Secure S3 bucket with all security controls enabled
 2. **terraform-ec2-misconfigured.tf** - Misconfigured EC2 instance with multiple security vulnerabilities
 
 ### CloudFormation Files
-1. **cloudformation-s3-misconfigured.yaml** - Misconfigured S3 bucket using CloudFormation
+1. **cloudformation-s3-secure.yaml** - ✅ **NEW**: Secure S3 bucket using CloudFormation with all security controls
 2. **cloudformation-ec2-misconfigured.yaml** - Misconfigured EC2 instance using CloudFormation
 
 ## Security Misconfigurations Included
 
-### S3 Bucket Misconfigurations
-- ❌ Public access block disabled
-- ❌ Public read/write ACL permissions
-- ❌ No server-side encryption
-- ❌ Versioning disabled
-- ❌ No access logging
-- ❌ Public bucket policy allowing full access
-- ❌ No lifecycle policies
-- ❌ No CloudTrail monitoring
+### S3 Bucket Security Status
+- ✅ Public access block enabled (S3.2 compliance)
+- ✅ Private ACL permissions (no public access)
+- ✅ Server-side encryption enabled
+- ✅ Versioning enabled
+- ✅ Access logging configured
+- ✅ Secure bucket policy (denies insecure connections)
+- ✅ Lifecycle policies configured
+- ✅ CloudWatch monitoring enabled
 
 ### EC2 Instance Misconfigurations
 - ❌ Security groups allowing access from 0.0.0.0/0 on multiple ports (SSH, RDP, HTTP, HTTPS, databases)
@@ -47,7 +47,7 @@ This repository contains intentionally misconfigured AWS infrastructure files de
 
 ### Terraform Deployment
 ```bash
-# For S3 misconfigured bucket
+# For S3 secure bucket (SECURITY FIXED)
 terraform init
 terraform plan -var-file="terraform-s3-misconfigured.tf"
 terraform apply -var-file="terraform-s3-misconfigured.tf"
@@ -60,10 +60,11 @@ terraform apply -var-file="terraform-ec2-misconfigured.tf"
 
 ### CloudFormation Deployment
 ```bash
-# For S3 misconfigured bucket
+# For S3 secure bucket (SECURITY FIXED)
 aws cloudformation create-stack \
-  --stack-name misconfigured-s3-stack \
-  --template-body file://cloudformation-s3-misconfigured.yaml
+  --stack-name secure-s3-stack \
+  --template-body file://cloudformation-s3-secure.yaml \
+  --capabilities CAPABILITY_IAM
 
 # For EC2 misconfigured instance
 aws cloudformation create-stack \

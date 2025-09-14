@@ -15,11 +15,11 @@ show_help() {
     echo "Usage: $0 [COMMAND] [OPTIONS]"
     echo ""
     echo "Commands:"
-    echo "  terraform-deploy-s3     Deploy misconfigured S3 bucket using Terraform"
+    echo "  terraform-deploy-s3     Deploy secure S3 bucket using Terraform (SECURITY FIXED)"
     echo "  terraform-deploy-ec2    Deploy misconfigured EC2 instance using Terraform"
     echo "  terraform-destroy-s3    Destroy S3 Terraform resources"
     echo "  terraform-destroy-ec2   Destroy EC2 Terraform resources"
-    echo "  cf-deploy-s3           Deploy misconfigured S3 bucket using CloudFormation"
+    echo "  cf-deploy-s3           Deploy secure S3 bucket using CloudFormation (SECURITY FIXED)"
     echo "  cf-deploy-ec2          Deploy misconfigured EC2 instance using CloudFormation"
     echo "  cf-destroy-s3          Destroy S3 CloudFormation stack"
     echo "  cf-destroy-ec2         Destroy EC2 CloudFormation stack"
@@ -43,7 +43,7 @@ check_requirements() {
 }
 
 terraform_deploy_s3() {
-    echo "🚀 Deploying misconfigured S3 bucket with Terraform..."
+    echo "🚀 Deploying secure S3 bucket with Terraform..."
     if ! command -v terraform &> /dev/null; then
         echo "❌ Terraform is required but not installed."
         exit 1
@@ -55,11 +55,11 @@ terraform_deploy_s3() {
     terraform init
     terraform plan
     echo ""
-    echo "⚠️  WARNING: This will create a PUBLICLY ACCESSIBLE S3 bucket!"
+    echo "✅ This will create a SECURE S3 bucket with all security controls enabled!"
     read -p "Are you sure you want to continue? (yes/no): " confirm
     if [[ $confirm == "yes" ]]; then
         terraform apply -auto-approve
-        echo "✅ S3 bucket deployed. Remember to destroy it when done!"
+        echo "✅ Secure S3 bucket deployed successfully!"
     else
         echo "Deployment cancelled."
     fi
@@ -117,16 +117,17 @@ terraform_destroy_ec2() {
 }
 
 cf_deploy_s3() {
-    echo "🚀 Deploying misconfigured S3 bucket with CloudFormation..."
+    echo "🚀 Deploying secure S3 bucket with CloudFormation..."
     echo ""
-    echo "⚠️  WARNING: This will create a PUBLICLY ACCESSIBLE S3 bucket!"
+    echo "✅ This will create a SECURE S3 bucket with all security controls enabled!"
     read -p "Are you sure you want to continue? (yes/no): " confirm
     if [[ $confirm == "yes" ]]; then
         aws cloudformation create-stack \
-            --stack-name misconfigured-s3-stack \
-            --template-body file://cloudformation-s3-misconfigured.yaml
+            --stack-name secure-s3-stack \
+            --template-body file://cloudformation-s3-secure.yaml \
+            --capabilities CAPABILITY_IAM
         echo "✅ CloudFormation stack deployment initiated. Check AWS console for progress."
-        echo "✅ Remember to destroy the stack when done!"
+        echo "✅ Secure S3 bucket will be created!"
     else
         echo "Deployment cancelled."
     fi
@@ -151,7 +152,7 @@ cf_deploy_ec2() {
 
 cf_destroy_s3() {
     echo "🗑️  Destroying S3 CloudFormation stack..."
-    aws cloudformation delete-stack --stack-name misconfigured-s3-stack
+    aws cloudformation delete-stack --stack-name secure-s3-stack
     echo "✅ CloudFormation stack deletion initiated. Check AWS console for progress."
 }
 
