@@ -1,0 +1,76 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  Secure S3 Bucket Configuration - Fixed from Public Write Access
+  Vulnerabilities
+
+Parameters:
+  BucketSuffix:
+    Type: String
+    Default: "secure-bucket"
+    Description: "Suffix for the S3 bucket name to ensure uniqueness"
+
+Resources:
+  # Secure S3 Bucket with proper access controls
+  SecureS3Bucket:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      BucketName: !Sub >-
+        my-secure-bucket-${BucketSuffix}-${AWS::AccountId}
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        IgnorePublicAcls: true
+        BlockPublicPolicy: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      VersioningConfiguration:
+        Status: Enabled
+      AccessControl: Private
+      Tags:
+        - Key: Name
+          Value: SecureBucket
+        - Key: Environment
+          Value: SecurityTesting
+        - Key: Purpose
+          Value: >-
+            Properly secured bucket demonstrating best practices
+
+  # Secure bucket policy that denies public write access
+  SecureBucketPolicy:
+    Type: "AWS::S3::BucketPolicy"
+    Properties:
+      Bucket: !Ref SecureS3Bucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: DenyPublicWriteAccess
+            Effect: Deny
+            Principal: "*"
+            Action:
+              - "s3:PutObject"
+              - "s3:DeleteObject"
+              - "s3:PutObjectAcl"
+            Resource:
+              - !Sub "${SecureS3Bucket}/*"
+              - !Ref SecureS3Bucket
+
+Outputs:
+  BucketName:
+    Description: "Name of the secure S3 bucket"
+    Value: !Ref SecureS3Bucket
+    Export:
+      Name: !Sub "${AWS::StackName}-BucketName"
+
+  BucketArn:
+    Description: "ARN of the secure S3 bucket"
+    Value: !GetAtt SecureS3Bucket.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-BucketArn"
+
+  SecurityWarnings:
+    Description: "Security status of this bucket"
+    Value: >-
+      SUCCESS: This bucket is properly secured against public write access!
