@@ -15,17 +15,18 @@ show_help() {
     echo "Usage: $0 [COMMAND] [OPTIONS]"
     echo ""
     echo "Commands:"
-    echo "  terraform-deploy-s3     Deploy misconfigured S3 bucket using Terraform"
+    echo "  terraform-deploy-s3     Deploy S3 bucket with security improvements (blocks public write)"
     echo "  terraform-deploy-ec2    Deploy misconfigured EC2 instance using Terraform"
     echo "  terraform-destroy-s3    Destroy S3 Terraform resources"
     echo "  terraform-destroy-ec2   Destroy EC2 Terraform resources"
-    echo "  cf-deploy-s3           Deploy misconfigured S3 bucket using CloudFormation"
+    echo "  cf-deploy-s3           Deploy S3 bucket using CloudFormation"
     echo "  cf-deploy-ec2          Deploy misconfigured EC2 instance using CloudFormation"
     echo "  cf-destroy-s3          Destroy S3 CloudFormation stack"
     echo "  cf-destroy-ec2         Destroy EC2 CloudFormation stack"
     echo "  help                   Show this help message"
     echo ""
-    echo "⚠️  WARNING: These resources are intentionally misconfigured and vulnerable!"
+    echo "🔒 SECURITY UPDATE: S3 public write access has been blocked in Terraform configuration"
+    echo "⚠️  WARNING: EC2 configurations remain intentionally vulnerable for testing!"
     echo "⚠️  Always destroy resources after testing to avoid charges and security risks!"
 }
 
@@ -43,7 +44,7 @@ check_requirements() {
 }
 
 terraform_deploy_s3() {
-    echo "🚀 Deploying misconfigured S3 bucket with Terraform..."
+    echo "🚀 Deploying S3 bucket with security improvements..."
     if ! command -v terraform &> /dev/null; then
         echo "❌ Terraform is required but not installed."
         exit 1
@@ -55,11 +56,11 @@ terraform_deploy_s3() {
     terraform init
     terraform plan
     echo ""
-    echo "⚠️  WARNING: This will create a PUBLICLY ACCESSIBLE S3 bucket!"
+    echo "ℹ️  SECURITY UPDATE: This S3 bucket now blocks public write access but allows public read for demonstration"
     read -p "Are you sure you want to continue? (yes/no): " confirm
     if [[ $confirm == "yes" ]]; then
         terraform apply -auto-approve
-        echo "✅ S3 bucket deployed. Remember to destroy it when done!"
+        echo "✅ S3 bucket deployed with security improvements. Remember to destroy it when done!"
     else
         echo "Deployment cancelled."
     fi
@@ -117,9 +118,9 @@ terraform_destroy_ec2() {
 }
 
 cf_deploy_s3() {
-    echo "🚀 Deploying misconfigured S3 bucket with CloudFormation..."
+    echo "🚀 Deploying S3 bucket with CloudFormation..."
     echo ""
-    echo "⚠️  WARNING: This will create a PUBLICLY ACCESSIBLE S3 bucket!"
+    echo "ℹ️  SECURITY UPDATE: If using CloudFormation, ensure similar security fixes are applied"
     read -p "Are you sure you want to continue? (yes/no): " confirm
     if [[ $confirm == "yes" ]]; then
         aws cloudformation create-stack \

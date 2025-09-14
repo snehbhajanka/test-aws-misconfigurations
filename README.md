@@ -15,12 +15,13 @@ This repository contains intentionally misconfigured AWS infrastructure files de
 ## Security Misconfigurations Included
 
 ### S3 Bucket Misconfigurations
-- ❌ Public access block disabled
-- ❌ Public read/write ACL permissions
+- ✅ **FIXED: Public write access blocked** - Public access block configured to prevent write operations
+- ✅ **FIXED: Public write ACL permissions removed** - Changed from public-read-write to public-read
+- ✅ **FIXED: Public write policy removed** - Bucket policy allows read-only access
+- ❌ Public read access enabled (for demonstration purposes)
 - ❌ No server-side encryption
 - ❌ Versioning disabled
 - ❌ No access logging
-- ❌ Public bucket policy allowing full access
 - ❌ No lifecycle policies
 - ❌ No CloudTrail monitoring
 
@@ -89,10 +90,19 @@ These misconfigurations can be detected by various security scanning tools:
 
 1. **DO NOT deploy these in production environments**
 2. **These resources will incur AWS charges**
-3. **Public S3 buckets may be discovered and abused by attackers**
+3. **S3 bucket has public read access for demonstration - monitor for unexpected usage**
 4. **EC2 instances with weak security groups are vulnerable to attacks**
 5. **Always destroy resources after testing**: `terraform destroy` or `aws cloudformation delete-stack`
 6. **Monitor your AWS bill and usage during testing**
+
+## Recent Security Updates
+
+**✅ CRITICAL FIX APPLIED**: S3 bucket public write access has been blocked to address security vulnerability:
+- Public access block now prevents write operations
+- Bucket ACL changed from public-read-write to public-read
+- Bucket policy removes PutObject and DeleteObject permissions for public users
+
+The bucket still allows public read access for educational purposes to demonstrate partial security improvements.
 
 ## Educational Use Cases
 
