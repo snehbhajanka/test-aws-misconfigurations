@@ -1,0 +1,171 @@
+# Intentionally Misconfigured S3 Bucket - CloudFormation Template
+# FOR SECURITY TESTING ONLY - Contains multiple security misconfigurations
+
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Intentionally misconfigured S3 bucket for security testing - DO NOT USE IN PRODUCTION'
+
+Parameters:
+  BucketPrefix:
+    Type: String
+    Default: 'misconfigured-s3-bucket'
+    Description: 'Prefix for the S3 bucket name'
+
+Resources:
+  # Generate random suffix for bucket name
+  BucketNameFunction:
+    Type: AWS::CloudFormation::CustomResource
+    Properties:
+      ServiceToken: !GetAtt BucketNameLambda.Arn
+
+  BucketNameLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: index.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        ZipFile: |
+          import json
+          import random
+          import string
+          import cfnresponse
+          
+          def handler(event, context):
+              if event['RequestType'] == 'Delete':
+                  cfnresponse.send(event, context, cfnresponse.SUCCESS, {})
+                  return
+              
+              random_suffix = ''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(8))
+              bucket_name = f"misconfigured-s3-bucket-{random_suffix}"
+              
+              cfnresponse.send(event, context, cfnresponse.SUCCESS, {'BucketName': bucket_name})
+      Runtime: python3.9
+      Timeout: 60
+
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+  # MISCONFIGURATION 1: S3 Bucket with public access enabled
+  MisconfiguredS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub '${BucketPrefix}-${AWS::AccountId}-${AWS::Region}'
+      # MISCONFIGURATION: Public access not blocked
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
+      
+      # MISCONFIGURATION: No versioning enabled
+      VersioningConfiguration:
+        Status: Suspended
+      
+      # MISCONFIGURATION: No server-side encryption
+      # BucketEncryption is intentionally omitted
+      
+      # MISCONFIGURATION: No access logging
+      # LoggingConfiguration is intentionally omitted
+      
+      # MISCONFIGURATION: No lifecycle configuration for cost optimization
+      # LifecycleConfiguration is intentionally omitted
+      
+      # MISCONFIGURATION: No notification configuration for monitoring
+      # NotificationConfiguration is intentionally omitted
+      
+      Tags:
+        - Key: Name
+          Value: MisconfiguredS3Bucket
+        - Key: Environment
+          Value: SecurityTesting
+        - Key: Purpose
+          Value: Intentionally vulnerable for testing
+
+  # MISCONFIGURATION 2: Public bucket policy allowing unrestricted access
+  MisconfiguredBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref MisconfiguredS3Bucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: PublicReadWriteAccess
+            Effect: Allow
+            Principal: '*'
+            Action:
+              - 's3:GetObject'
+              - 's3:PutObject'
+              - 's3:DeleteObject'
+              - 's3:ListBucket'
+              - 's3:GetBucketLocation'
+            Resource:
+              - !GetAtt MisconfiguredS3Bucket.Arn
+              - !Sub '${MisconfiguredS3Bucket.Arn}/*'
+          
+          # ADDITIONAL MISCONFIGURATION: Allow bucket ACL modifications
+          - Sid: AllowPublicACLModifications
+            Effect: Allow
+            Principal: '*'
+            Action:
+              - 's3:PutBucketAcl'
+              - 's3:GetBucketAcl'
+              - 's3:PutObjectAcl'
+              - 's3:GetObjectAcl'
+            Resource:
+              - !GetAtt MisconfiguredS3Bucket.Arn
+              - !Sub '${MisconfiguredS3Bucket.Arn}/*'
+
+  # MISCONFIGURATION 3: CloudTrail with logging disabled for this bucket
+  # (CloudTrail configuration is intentionally omitted to avoid monitoring)
+
+  # MISCONFIGURATION 4: No SNS topic for bucket notifications
+  # (Notification configuration is intentionally omitted)
+
+  # MISCONFIGURATION 5: No S3 access point for controlled access
+  # (Access points are intentionally omitted)
+
+Outputs:
+  BucketName:
+    Description: 'Name of the misconfigured S3 bucket'
+    Value: !Ref MisconfiguredS3Bucket
+    Export:
+      Name: !Sub '${AWS::StackName}-BucketName'
+
+  BucketDomainName:
+    Description: 'Domain name of the misconfigured S3 bucket'
+    Value: !GetAtt MisconfiguredS3Bucket.DomainName
+    Export:
+      Name: !Sub '${AWS::StackName}-BucketDomainName'
+
+  BucketWebsiteURL:
+    Description: 'Website URL of the misconfigured S3 bucket'
+    Value: !GetAtt MisconfiguredS3Bucket.WebsiteURL
+    Export:
+      Name: !Sub '${AWS::StackName}-BucketWebsiteURL'
+
+  SecurityWarnings:
+    Description: 'Security warnings about this misconfigured bucket'
+    Value: 'WARNING: This S3 bucket is intentionally misconfigured with public access, no encryption, no versioning, and no access logging!'
+
+  MisconfigurationSummary:
+    Description: 'Summary of intentional misconfigurations'
+    Value: |
+      SECURITY ISSUES PRESENT:
+      1. Public access block disabled
+      2. Public read/write bucket policy
+      3. No server-side encryption
+      4. Versioning disabled
+      5. No access logging
+      6. No CloudTrail monitoring
+      7. No lifecycle policies
+      8. No bucket notifications
+      9. Unrestricted ACL modifications allowed
