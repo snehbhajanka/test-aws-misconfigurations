@@ -1,0 +1,360 @@
+# Intentionally Misconfigured EC2 Instance - CloudFormation Template
+# FOR SECURITY TESTING ONLY - Contains multiple security misconfigurations
+
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Intentionally misconfigured EC2 instance for security testing - DO NOT USE IN PRODUCTION'
+
+Parameters:
+  InstanceType:
+    Type: String
+    Default: t2.micro
+    Description: 'EC2 instance type'
+    AllowedValues:
+      - t2.micro
+      - t2.small
+      - t2.medium
+
+  KeyPairName:
+    Type: String
+    Default: ''
+    Description: 'Name of an existing EC2 key pair (leave empty for no key pair - SECURITY RISK)'
+
+Resources:
+  # MISCONFIGURATION 1: Overly permissive security group
+  MisconfiguredSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: 'Intentionally misconfigured security group with overly permissive rules'
+      SecurityGroupIngress:
+        # Allow SSH from anywhere
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+          Description: 'SSH access from anywhere - SECURITY RISK'
+        
+        # Allow HTTP from anywhere
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+          Description: 'HTTP access from anywhere'
+        
+        # Allow HTTPS from anywhere
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+          Description: 'HTTPS access from anywhere'
+        
+        # Allow RDP from anywhere
+        - IpProtocol: tcp
+          FromPort: 3389
+          ToPort: 3389
+          CidrIp: 0.0.0.0/0
+          Description: 'RDP access from anywhere - SECURITY RISK'
+        
+        # Allow MySQL from anywhere
+        - IpProtocol: tcp
+          FromPort: 3306
+          ToPort: 3306
+          CidrIp: 0.0.0.0/0
+          Description: 'MySQL access from anywhere - SECURITY RISK'
+        
+        # Allow PostgreSQL from anywhere
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          CidrIp: 0.0.0.0/0
+          Description: 'PostgreSQL access from anywhere - SECURITY RISK'
+        
+        # Allow MongoDB from anywhere
+        - IpProtocol: tcp
+          FromPort: 27017
+          ToPort: 27017
+          CidrIp: 0.0.0.0/0
+          Description: 'MongoDB access from anywhere - SECURITY RISK'
+        
+        # Allow Redis from anywhere
+        - IpProtocol: tcp
+          FromPort: 6379
+          ToPort: 6379
+          CidrIp: 0.0.0.0/0
+          Description: 'Redis access from anywhere - SECURITY RISK'
+        
+        # Allow all ICMP traffic
+        - IpProtocol: icmp
+          FromPort: -1
+          ToPort: -1
+          CidrIp: 0.0.0.0/0
+          Description: 'ICMP access from anywhere'
+        
+        # Allow custom application port range
+        - IpProtocol: tcp
+          FromPort: 8000
+          ToPort: 9000
+          CidrIp: 0.0.0.0/0
+          Description: 'Custom application ports from anywhere - SECURITY RISK'
+      
+      SecurityGroupEgress:
+        # Allow all outbound traffic
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+          Description: 'All outbound traffic allowed'
+      
+      Tags:
+        - Key: Name
+          Value: MisconfiguredSecurityGroup
+        - Key: Environment
+          Value: SecurityTesting
+        - Key: Purpose
+          Value: Intentionally vulnerable for testing
+
+  # MISCONFIGURATION 2: IAM role with excessive permissions
+  MisconfiguredEC2Role:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: 'MisconfiguredEC2Role'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      
+      # MISCONFIGURATION: Attach AWS managed policies with broad permissions
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/PowerUserAccess
+        - arn:aws:iam::aws:policy/IAMFullAccess
+      
+      # MISCONFIGURATION: Custom policy with excessive permissions
+      Policies:
+        - PolicyName: 'MisconfiguredInlinePolicy'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 's3:*'
+                  - 'ec2:*'
+                  - 'iam:*'
+                  - 'rds:*'
+                  - 'lambda:*'
+                  - 'cloudformation:*'
+                  - 'secretsmanager:*'
+                  - 'ssm:*'
+                Resource: '*'
+      
+      Tags:
+        - Key: Name
+          Value: MisconfiguredEC2Role
+        - Key: Environment
+          Value: SecurityTesting
+        - Key: Purpose
+          Value: Intentionally vulnerable for testing
+
+  # Instance profile for the role
+  MisconfiguredInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName: 'MisconfiguredInstanceProfile'
+      Roles:
+        - !Ref MisconfiguredEC2Role
+
+  # Get latest Amazon Linux 2 AMI
+  AmiInfo:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2
+
+  # MISCONFIGURATION 3: EC2 instance with multiple security issues
+  MisconfiguredEC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref AmiInfo
+      InstanceType: !Ref InstanceType
+      
+      # MISCONFIGURATION: No key pair (if parameter is empty)
+      KeyName: !If [HasKeyPair, !Ref KeyPairName, !Ref 'AWS::NoValue']
+      
+      # MISCONFIGURATION: Use default VPC and subnet (public)
+      # SubnetId is intentionally omitted to use default
+      
+      # MISCONFIGURATION: Associate public IP
+      AssociatePublicIpAddress: true
+      
+      # MISCONFIGURATION: Use overly permissive security group
+      SecurityGroupIds:
+        - !Ref MisconfiguredSecurityGroup
+      
+      # MISCONFIGURATION: Attach role with excessive permissions
+      IamInstanceProfile: !Ref MisconfiguredInstanceProfile
+      
+      # MISCONFIGURATION: User data with sensitive information
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          yum update -y
+          yum install -y httpd mysql postgresql-server
+          systemctl start httpd
+          systemctl enable httpd
+          
+          # SECURITY ISSUE: Hardcoded sensitive information
+          export DB_PASSWORD="SuperSecretPassword123!"
+          export API_KEY="AKIA1234567890ABCDEF"
+          export SECRET_TOKEN="sk-1234567890abcdef1234567890abcdef"
+          
+          # Store credentials in easily accessible location
+          echo "DB_PASSWORD=$DB_PASSWORD" > /home/ec2-user/.env
+          echo "API_KEY=$API_KEY" >> /home/ec2-user/.env
+          echo "SECRET_TOKEN=$SECRET_TOKEN" >> /home/ec2-user/.env
+          chmod 644 /home/ec2-user/.env
+          
+          # Create a simple web page with sensitive info
+          cat << 'EOF' > /var/www/html/index.html
+          <html>
+          <head><title>Misconfigured Web Server</title></head>
+          <body>
+            <h1>Misconfigured Web Server</h1>
+            <p>This server is intentionally misconfigured for security testing.</p>
+            <h2>Configuration Details:</h2>
+            <ul>
+              <li>Database Password: SuperSecretPassword123!</li>
+              <li>API Key: AKIA1234567890ABCDEF</li>
+              <li>Security Group: Allows access from 0.0.0.0/0</li>
+              <li>IAM Role: Has excessive permissions</li>
+              <li>Encryption: Disabled</li>
+              <li>Monitoring: Disabled</li>
+            </ul>
+            <h2>Environment Variables:</h2>
+            <pre id="env-vars"></pre>
+            <script>
+              fetch('/cgi-bin/env.cgi')
+                .then(response => response.text())
+                .then(data => document.getElementById('env-vars').textContent = data);
+            </script>
+          </body>
+          </html>
+          EOF
+          
+          # SECURITY ISSUE: Create CGI script that exposes environment variables
+          mkdir -p /var/www/cgi-bin
+          cat << 'EOF' > /var/www/cgi-bin/env.cgi
+          #!/bin/bash
+          echo "Content-Type: text/plain"
+          echo ""
+          env | grep -E "(PASSWORD|KEY|TOKEN|SECRET)"
+          EOF
+          chmod +x /var/www/cgi-bin/env.cgi
+          
+          # Enable CGI in Apache
+          echo "LoadModule cgi_module modules/mod_cgi.so" >> /etc/httpd/conf/httpd.conf
+          echo "ScriptAlias /cgi-bin/ /var/www/cgi-bin/" >> /etc/httpd/conf/httpd.conf
+          
+          # SECURITY ISSUE: Disable firewall
+          systemctl stop firewalld
+          systemctl disable firewalld
+          
+          # SECURITY ISSUE: Create user with weak password
+          useradd -m testuser
+          echo "testuser:password123" | chpasswd
+          
+          # SECURITY ISSUE: Add testuser to sudoers without password
+          echo "testuser ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+          
+          # SECURITY ISSUE: Enable SSH password authentication
+          sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/' /etc/ssh/sshd_config
+          systemctl restart sshd
+          
+          # SECURITY ISSUE: Create SSH key with no passphrase and weak permissions
+          mkdir -p /home/ec2-user/.ssh
+          ssh-keygen -t rsa -b 2048 -f /home/ec2-user/.ssh/id_rsa -N ""
+          chmod 644 /home/ec2-user/.ssh/id_rsa
+          chown -R ec2-user:ec2-user /home/ec2-user/.ssh
+          
+          # Restart Apache
+          systemctl restart httpd
+      
+      # MISCONFIGURATION: Unencrypted EBS volume
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeType: gp2
+            VolumeSize: 8
+            Encrypted: false  # Should be true
+            DeleteOnTermination: true
+      
+      # MISCONFIGURATION: No detailed monitoring
+      Monitoring: false
+      
+      # MISCONFIGURATION: IMDSv1 enabled (should require IMDSv2)
+      MetadataOptions:
+        HttpEndpoint: enabled
+        HttpTokens: optional  # Should be "required"
+        HttpPutResponseHopLimit: 2
+        InstanceMetadataTags: enabled
+      
+      Tags:
+        - Key: Name
+          Value: MisconfiguredEC2Instance
+        - Key: Environment
+          Value: SecurityTesting
+        - Key: Purpose
+          Value: Intentionally vulnerable for testing
+
+Conditions:
+  HasKeyPair: !Not [!Equals [!Ref KeyPairName, '']]
+
+Outputs:
+  InstanceId:
+    Description: 'Instance ID of the misconfigured EC2 instance'
+    Value: !Ref MisconfiguredEC2Instance
+    Export:
+      Name: !Sub '${AWS::StackName}-InstanceId'
+
+  PublicIpAddress:
+    Description: 'Public IP address of the misconfigured EC2 instance'
+    Value: !GetAtt MisconfiguredEC2Instance.PublicIp
+    Export:
+      Name: !Sub '${AWS::StackName}-PublicIp'
+
+  PublicDnsName:
+    Description: 'Public DNS name of the misconfigured EC2 instance'
+    Value: !GetAtt MisconfiguredEC2Instance.PublicDnsName
+    Export:
+      Name: !Sub '${AWS::StackName}-PublicDnsName'
+
+  SecurityGroupId:
+    Description: 'Security Group ID'
+    Value: !Ref MisconfiguredSecurityGroup
+    Export:
+      Name: !Sub '${AWS::StackName}-SecurityGroupId'
+
+  WebsiteURL:
+    Description: 'URL of the misconfigured web server'
+    Value: !Sub 'http://${MisconfiguredEC2Instance.PublicIp}'
+
+  SSHCommand:
+    Description: 'SSH command to connect to the instance'
+    Value: !Sub 'ssh -i your-key.pem ec2-user@${MisconfiguredEC2Instance.PublicIp}'
+
+  SecurityWarnings:
+    Description: 'Security warnings about this misconfigured instance'
+    Value: 'WARNING: This EC2 instance is intentionally misconfigured with public access, weak security groups, unencrypted storage, hardcoded credentials, and excessive IAM permissions!'
+
+  MisconfigurationSummary:
+    Description: 'Summary of intentional misconfigurations'
+    Value: |
+      SECURITY ISSUES PRESENT:
+      1. Security group allows access from 0.0.0.0/0 on multiple ports
+      2. IAM role with PowerUserAccess and IAMFullAccess
+      3. Hardcoded credentials in user data
+      4. Unencrypted EBS volume
+      5. IMDSv1 enabled (allows SSRF attacks)
+      6. No detailed monitoring
+      7. Public IP association
+      8. Weak user passwords
+      9. SSH password authentication enabled
+      10. Firewall disabled
+      11. Sudo access without password
+      12. Sensitive information exposed via web interface
