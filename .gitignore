@@ -40,3 +40,7 @@ Thumbs.db
 .env
 .env.local
 .env.*.local
+
+# Downloaded files for installation
+*.zip
+LICENSE.txt

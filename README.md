@@ -5,22 +5,23 @@ This repository contains intentionally misconfigured AWS infrastructure files de
 ## Files Included
 
 ### Terraform Files
-1. **terraform-s3-misconfigured.tf** - Misconfigured S3 bucket with public access
+1. **terraform-s3-misconfigured.tf** - S3 bucket configuration (NOW SECURED - public write access blocked)
 2. **terraform-ec2-misconfigured.tf** - Misconfigured EC2 instance with multiple security vulnerabilities
 
 ### CloudFormation Files
-1. **cloudformation-s3-misconfigured.yaml** - Misconfigured S3 bucket using CloudFormation
-2. **cloudformation-ec2-misconfigured.yaml** - Misconfigured EC2 instance using CloudFormation
+1. **cloudformation-s3-secure.yaml** - Secure S3 bucket configuration with public access blocked
+2. **cloudformation-rds-misconfig.yaml** - Misconfigured RDS instance using CloudFormation  
+3. **cloudformation-sg-misconfig.yaml** - Misconfigured Security Group using CloudFormation
 
 ## Security Misconfigurations Included
 
-### S3 Bucket Misconfigurations
-- ❌ Public access block disabled
-- ❌ Public read/write ACL permissions
+### S3 Bucket Security Status
+- ✅ **Public access block enabled** (FIXED - S3.3 Control)
+- ✅ **Private ACL configured** (FIXED)
+- ✅ **Public bucket policy removed** (FIXED)
 - ❌ No server-side encryption
 - ❌ Versioning disabled
 - ❌ No access logging
-- ❌ Public bucket policy allowing full access
 - ❌ No lifecycle policies
 - ❌ No CloudTrail monitoring
 
@@ -47,12 +48,12 @@ This repository contains intentionally misconfigured AWS infrastructure files de
 
 ### Terraform Deployment
 ```bash
-# For S3 misconfigured bucket
+# For S3 secure bucket (public write access blocked)
 terraform init
-terraform plan -var-file="terraform-s3-misconfigured.tf"
-terraform apply -var-file="terraform-s3-misconfigured.tf"
+terraform plan -target=aws_s3_bucket.misconfigured_bucket -target=aws_s3_bucket_public_access_block.secure_pab
+terraform apply -target=aws_s3_bucket.misconfigured_bucket -target=aws_s3_bucket_public_access_block.secure_pab
 
-# For EC2 misconfigured instance
+# For EC2 misconfigured instance  
 terraform init
 terraform plan -var-file="terraform-ec2-misconfigured.tf"
 terraform apply -var-file="terraform-ec2-misconfigured.tf"
@@ -60,16 +61,19 @@ terraform apply -var-file="terraform-ec2-misconfigured.tf"
 
 ### CloudFormation Deployment
 ```bash
-# For S3 misconfigured bucket
+# For secure S3 bucket (recommended)
 aws cloudformation create-stack \
-  --stack-name misconfigured-s3-stack \
-  --template-body file://cloudformation-s3-misconfigured.yaml
+  --stack-name secure-s3-stack \
+  --template-body file://cloudformation-s3-secure.yaml
 
-# For EC2 misconfigured instance
+# For misconfigured resources (testing only)
 aws cloudformation create-stack \
-  --stack-name misconfigured-ec2-stack \
-  --template-body file://cloudformation-ec2-misconfigured.yaml \
-  --capabilities CAPABILITY_NAMED_IAM
+  --stack-name misconfigured-rds-stack \
+  --template-body file://cloudformation-rds-misconfig.yaml
+
+aws cloudformation create-stack \
+  --stack-name misconfigured-sg-stack \
+  --template-body file://cloudformation-sg-misconfig.yaml
 ```
 
 ## Security Testing Tools

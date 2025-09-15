@@ -1,0 +1,84 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Secure S3 Bucket Configuration - Blocks Public Write Access (S3.3 Control)"
+
+Parameters:
+  BucketName:
+    Type: String
+    Default: "secure-s3-bucket"
+    Description: "Name for the secure S3 bucket"
+
+Resources:
+  # Secure S3 Bucket
+  SecureS3Bucket:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      BucketName: !Sub "${BucketName}-${AWS::AccountId}-${AWS::Region}"
+      # Enable versioning for data protection
+      VersioningConfiguration:
+        Status: Enabled
+      # Enable default encryption
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      # Configure logging
+      LoggingConfiguration:
+        DestinationBucketName: !Ref AccessLogsBucket
+        LogFilePrefix: "access-logs/"
+      # Configure lifecycle rules
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteIncompleteMultipartUploads
+            Status: Enabled
+            AbortIncompleteMultipartUpload:
+              DaysAfterInitiation: 7
+      Tags:
+        - Key: "Name"
+          Value: "SecureS3Bucket"
+        - Key: "Environment"
+          Value: "Production"
+        - Key: "Purpose"
+          Value: "Secure configuration example"
+
+  # SECURITY FIX: Block all public access to prevent public write access
+  S3BucketPublicAccessBlock:
+    Type: "AWS::S3::BucketPublicAccessBlock"
+    Properties:
+      Bucket: !Ref SecureS3Bucket
+      BlockPublicAcls: true
+      BlockPublicPolicy: true
+      IgnorePublicAcls: true
+      RestrictPublicBuckets: true
+
+  # Separate bucket for access logs
+  AccessLogsBucket:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      BucketName: !Sub "${BucketName}-access-logs-${AWS::AccountId}-${AWS::Region}"
+      
+  # Block public access for access logs bucket
+  AccessLogsBucketPublicAccessBlock:
+    Type: "AWS::S3::BucketPublicAccessBlock"
+    Properties:
+      Bucket: !Ref AccessLogsBucket
+      BlockPublicAcls: true
+      BlockPublicPolicy: true
+      IgnorePublicAcls: true
+      RestrictPublicBuckets: true
+
+Outputs:
+  BucketName:
+    Description: "Name of the secure S3 bucket"
+    Value: !Ref SecureS3Bucket
+    Export:
+      Name: !Sub "${AWS::StackName}-SecureBucketName"
+
+  BucketArn:
+    Description: "ARN of the secure S3 bucket"
+    Value: !GetAtt SecureS3Bucket.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-SecureBucketArn"
+
+  SecurityStatus:
+    Description: "Security configuration status"
+    Value: "✅ SECURE: Public access blocked, encryption enabled, versioning enabled, logging configured"
