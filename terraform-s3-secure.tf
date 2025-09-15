@@ -35,17 +35,17 @@ resource "random_id" "secure_bucket_suffix" {
 resource "aws_s3_bucket_public_access_block" "secure_pab" {
   bucket = aws_s3_bucket.secure_bucket.id
 
-  block_public_acls       = true  # FIXED: Block public ACLs
-  block_public_policy     = true  # FIXED: Block public bucket policies
-  ignore_public_acls      = true  # FIXED: Ignore public ACLs
-  restrict_public_buckets = true  # FIXED: Restrict public bucket access
+  block_public_acls       = true # FIXED: Block public ACLs
+  block_public_policy     = true # FIXED: Block public bucket policies
+  ignore_public_acls      = true # FIXED: Ignore public ACLs
+  restrict_public_buckets = true # FIXED: Restrict public bucket access
 }
 
 # SECURITY FIX 2: Private ACL (no public access)
 resource "aws_s3_bucket_acl" "secure_acl" {
   depends_on = [aws_s3_bucket_ownership_controls.secure_bucket_acl_ownership]
   bucket     = aws_s3_bucket.secure_bucket.id
-  acl        = "private"  # FIXED: Changed from "public-read-write" to "private"
+  acl        = "private" # FIXED: Changed from "public-read-write" to "private"
 }
 
 resource "aws_s3_bucket_ownership_controls" "secure_bucket_acl_ownership" {
@@ -71,7 +71,7 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "secure_encryption
 resource "aws_s3_bucket_versioning" "secure_versioning" {
   bucket = aws_s3_bucket.secure_bucket.id
   versioning_configuration {
-    status = "Enabled"  # FIXED: Changed from "Disabled" to "Enabled"
+    status = "Enabled" # FIXED: Changed from "Disabled" to "Enabled"
   }
 }
 
@@ -124,9 +124,9 @@ output "security_status" {
 output "security_features" {
   value = {
     public_access_blocked = "✅ All public access blocked"
-    private_acl          = "✅ Private ACL configured"
-    encryption_enabled   = "✅ Server-side encryption enabled"
-    versioning_enabled   = "✅ Versioning enabled"
-    restrictive_policy   = "✅ Account-restricted bucket policy"
+    private_acl           = "✅ Private ACL configured"
+    encryption_enabled    = "✅ Server-side encryption enabled"
+    versioning_enabled    = "✅ Versioning enabled"
+    restrictive_policy    = "✅ Account-restricted bucket policy"
   }
 }

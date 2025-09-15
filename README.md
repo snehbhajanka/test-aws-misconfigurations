@@ -14,6 +14,10 @@ This repository contains intentionally misconfigured AWS infrastructure files de
 2. **cloudformation-rds-misconfig.yaml** - Misconfigured RDS resources
 3. **cloudformation-sg-misconfig.yaml** - Misconfigured Security Groups
 
+### Testing Scripts
+1. **test-s3-security.sh** - ✅ **NEW**: Automated script to verify S3.3 compliance and compare configurations
+2. **deploy.sh** - Updated deployment script with secure configuration options
+
 ## Security Misconfigurations Included
 
 ### S3 Bucket Misconfigurations
@@ -129,6 +133,37 @@ These misconfigurations can be detected by various security scanning tools:
 4. **EC2 instances with weak security groups are vulnerable to attacks**
 5. **Always destroy resources after testing**: `terraform destroy` or `aws cloudformation delete-stack`
 6. **Monitor your AWS bill and usage during testing**
+
+## 🔍 Testing and Verification
+
+### Automated Security Analysis
+Use the included test script to compare misconfigured vs secure configurations:
+
+```bash
+./test-s3-security.sh
+```
+
+This will show the differences and confirm S3.3 compliance.
+
+### Manual Verification Steps
+
+1. **Verify via AWS Management Console:**
+   - Navigate to the S3 bucket in the AWS Management Console
+   - Check that all Block Public Access settings are enabled
+   - Confirm bucket ACL is set to private
+   - Review bucket policy for restrictive access
+
+2. **Verify via AWS CLI:**
+   ```bash
+   aws s3api get-public-access-block --bucket <your-secure-bucket-name>
+   aws s3api get-bucket-acl --bucket <your-secure-bucket-name>
+   aws s3api get-bucket-policy --bucket <your-secure-bucket-name>
+   ```
+
+3. **Test Public Write Access:**
+   - Attempt to upload a file from an unauthorized account
+   - Confirm that the upload is blocked
+   - Verify no public write access is possible
 
 ## Educational Use Cases
 
