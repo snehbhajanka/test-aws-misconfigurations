@@ -29,21 +29,27 @@ resource "random_id" "bucket_suffix" {
   byte_length = 8
 }
 
-# MISCONFIGURATION 1: Public access block disabled (allows public access)
+# SECURITY FIX: Block public write access (S3.3 compliance)
+# This fixes the critical security vulnerability while maintaining read-only public access for educational purposes
 resource "aws_s3_bucket_public_access_block" "misconfigured_pab" {
   bucket = aws_s3_bucket.misconfigured_bucket.id
 
-  block_public_acls       = false
-  block_public_policy     = false
-  ignore_public_acls      = false
-  restrict_public_buckets = false
+  # FIXED: Block public ACLs to prevent public write access
+  block_public_acls = true
+  # FIXED: Block public policies to prevent public write access  
+  block_public_policy = true
+  # FIXED: Ignore public ACLs to prevent public write access
+  ignore_public_acls = true
+  # FIXED: Restrict public buckets to prevent public write access
+  restrict_public_buckets = true
 }
 
-# MISCONFIGURATION 2: Public read/write ACL
+# SECURITY FIX: Remove public write ACL (S3.3 compliance)
+# Changed from public-read-write to private to block public write access
 resource "aws_s3_bucket_acl" "misconfigured_acl" {
   depends_on = [aws_s3_bucket_ownership_controls.s3_bucket_acl_ownership]
   bucket     = aws_s3_bucket.misconfigured_bucket.id
-  acl        = "public-read-write"
+  acl        = "private" # FIXED: Removed public write access
 }
 
 resource "aws_s3_bucket_ownership_controls" "s3_bucket_acl_ownership" {
@@ -67,7 +73,8 @@ resource "aws_s3_bucket_versioning" "misconfigured_versioning" {
 # MISCONFIGURATION 5: No access logging
 # (Logging is intentionally not configured)
 
-# MISCONFIGURATION 6: Public bucket policy allowing full access
+# SECURITY FIX: Removed public write access from bucket policy (S3.3 compliance)
+# Policy now only allows read operations, blocking all write operations from public access
 resource "aws_s3_bucket_policy" "misconfigured_policy" {
   bucket = aws_s3_bucket.misconfigured_bucket.id
 
@@ -75,14 +82,14 @@ resource "aws_s3_bucket_policy" "misconfigured_policy" {
     Version = "2012-10-17"
     Statement = [
       {
-        Sid       = "PublicReadWrite"
+        Sid       = "PublicReadOnly" # FIXED: Changed from PublicReadWrite
         Effect    = "Allow"
         Principal = "*"
         Action = [
-          "s3:GetObject",
-          "s3:PutObject",
-          "s3:DeleteObject",
-          "s3:ListBucket"
+          "s3:GetObject", # Read access maintained for educational purposes
+          "s3:ListBucket" # List access maintained for educational purposes
+          # REMOVED: s3:PutObject - BLOCKS PUBLIC WRITE ACCESS
+          # REMOVED: s3:DeleteObject - BLOCKS PUBLIC DELETE ACCESS
         ]
         Resource = [
           aws_s3_bucket.misconfigured_bucket.arn,
@@ -103,5 +110,5 @@ output "bucket_domain_name" {
 }
 
 output "security_warnings" {
-  value = "WARNING: This bucket is intentionally misconfigured with public access, no encryption, and no versioning!"
+  value = "✅ SECURITY FIXED: S3.3 - Public write access has been blocked. Bucket now has restricted access with public write operations disabled."
 }

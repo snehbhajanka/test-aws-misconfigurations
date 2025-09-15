@@ -15,9 +15,11 @@ show_help() {
     echo "Usage: $0 [COMMAND] [OPTIONS]"
     echo ""
     echo "Commands:"
-    echo "  terraform-deploy-s3     Deploy misconfigured S3 bucket using Terraform"
+    echo "  terraform-deploy-s3     Deploy S3 bucket with S3.3 security fix (public write blocked)"
+    echo "  terraform-deploy-s3-secure Deploy fully secure S3 bucket with all best practices"
     echo "  terraform-deploy-ec2    Deploy misconfigured EC2 instance using Terraform"
     echo "  terraform-destroy-s3    Destroy S3 Terraform resources"
+    echo "  terraform-destroy-s3-secure Destroy secure S3 Terraform resources"
     echo "  terraform-destroy-ec2   Destroy EC2 Terraform resources"
     echo "  cf-deploy-s3           Deploy misconfigured S3 bucket using CloudFormation"
     echo "  cf-deploy-ec2          Deploy misconfigured EC2 instance using CloudFormation"
@@ -43,7 +45,7 @@ check_requirements() {
 }
 
 terraform_deploy_s3() {
-    echo "🚀 Deploying misconfigured S3 bucket with Terraform..."
+    echo "🚀 Deploying S3 bucket with S3.3 security fix (public write blocked)..."
     if ! command -v terraform &> /dev/null; then
         echo "❌ Terraform is required but not installed."
         exit 1
@@ -55,11 +57,36 @@ terraform_deploy_s3() {
     terraform init
     terraform plan
     echo ""
-    echo "⚠️  WARNING: This will create a PUBLICLY ACCESSIBLE S3 bucket!"
+    echo "ℹ️  NOTE: This S3 bucket has S3.3 security fix applied (public write access blocked)."
+    echo "ℹ️  Other misconfigurations remain for educational purposes."
     read -p "Are you sure you want to continue? (yes/no): " confirm
     if [[ $confirm == "yes" ]]; then
         terraform apply -auto-approve
-        echo "✅ S3 bucket deployed. Remember to destroy it when done!"
+        echo "✅ S3 bucket deployed with S3.3 security fix. Remember to destroy it when done!"
+    else
+        echo "Deployment cancelled."
+    fi
+    cd ..
+}
+
+terraform_deploy_s3_secure() {
+    echo "🚀 Deploying fully secure S3 bucket with all security best practices..."
+    if ! command -v terraform &> /dev/null; then
+        echo "❌ Terraform is required but not installed."
+        exit 1
+    fi
+    
+    mkdir -p terraform-s3-secure-work
+    cp terraform-s3-secure.tf terraform-s3-secure-work/
+    cd terraform-s3-secure-work
+    terraform init
+    terraform plan
+    echo ""
+    echo "ℹ️  NOTE: This deploys a fully secure S3 bucket with all security best practices."
+    read -p "Are you sure you want to continue? (yes/no): " confirm
+    if [[ $confirm == "yes" ]]; then
+        terraform apply -auto-approve
+        echo "✅ Secure S3 bucket deployed. Remember to destroy it when done!"
     else
         echo "Deployment cancelled."
     fi
@@ -100,6 +127,19 @@ terraform_destroy_s3() {
         echo "✅ S3 resources destroyed."
     else
         echo "No S3 Terraform resources found to destroy."
+    fi
+}
+
+terraform_destroy_s3_secure() {
+    echo "🗑️  Destroying secure S3 Terraform resources..."
+    if [[ -d "terraform-s3-secure-work" ]]; then
+        cd terraform-s3-secure-work
+        terraform destroy -auto-approve
+        cd ..
+        rm -rf terraform-s3-secure-work
+        echo "✅ Secure S3 resources destroyed."
+    else
+        echo "No secure S3 Terraform resources found to destroy."
     fi
 }
 
@@ -167,6 +207,10 @@ case "${1:-help}" in
         check_requirements
         terraform_deploy_s3
         ;;
+    terraform-deploy-s3-secure)
+        check_requirements
+        terraform_deploy_s3_secure
+        ;;
     terraform-deploy-ec2)
         check_requirements
         terraform_deploy_ec2
@@ -174,6 +218,10 @@ case "${1:-help}" in
     terraform-destroy-s3)
         check_requirements
         terraform_destroy_s3
+        ;;
+    terraform-destroy-s3-secure)
+        check_requirements
+        terraform_destroy_s3_secure
         ;;
     terraform-destroy-ec2)
         check_requirements

@@ -5,8 +5,9 @@ This repository contains intentionally misconfigured AWS infrastructure files de
 ## Files Included
 
 ### Terraform Files
-1. **terraform-s3-misconfigured.tf** - Misconfigured S3 bucket with public access
-2. **terraform-ec2-misconfigured.tf** - Misconfigured EC2 instance with multiple security vulnerabilities
+1. **terraform-s3-misconfigured.tf** - S3 bucket with FIXED public write access (S3.3 compliance) but other misconfigurations remain for educational purposes
+2. **terraform-s3-secure.tf** - Properly configured secure S3 bucket with all security best practices
+3. **terraform-ec2-misconfigured.tf** - Misconfigured EC2 instance with multiple security vulnerabilities
 
 ### CloudFormation Files
 1. **cloudformation-s3-misconfigured.yaml** - Misconfigured S3 bucket using CloudFormation
@@ -15,14 +16,14 @@ This repository contains intentionally misconfigured AWS infrastructure files de
 ## Security Misconfigurations Included
 
 ### S3 Bucket Misconfigurations
-- ❌ Public access block disabled
-- ❌ Public read/write ACL permissions
-- ❌ No server-side encryption
-- ❌ Versioning disabled
-- ❌ No access logging
-- ❌ Public bucket policy allowing full access
-- ❌ No lifecycle policies
-- ❌ No CloudTrail monitoring
+- ✅ **FIXED S3.3**: Public write access blocked (BlockPublicAcls, IgnorePublicAcls, BlockPublicPolicy, RestrictPublicBuckets all set to true)
+- ✅ **FIXED**: Public write ACL permissions removed (changed to private)
+- ✅ **FIXED**: Public bucket policy write access removed (only read operations allowed)
+- ❌ No server-side encryption (remaining for educational purposes)
+- ❌ Versioning disabled (remaining for educational purposes)
+- ❌ No access logging (remaining for educational purposes)
+- ❌ No lifecycle policies (remaining for educational purposes)
+- ❌ No CloudTrail monitoring (remaining for educational purposes)
 
 ### EC2 Instance Misconfigurations
 - ❌ Security groups allowing access from 0.0.0.0/0 on multiple ports (SSH, RDP, HTTP, HTTPS, databases)
@@ -47,10 +48,15 @@ This repository contains intentionally misconfigured AWS infrastructure files de
 
 ### Terraform Deployment
 ```bash
-# For S3 misconfigured bucket
+# For S3 misconfigured bucket (with S3.3 security fix applied)
 terraform init
 terraform plan -var-file="terraform-s3-misconfigured.tf"
 terraform apply -var-file="terraform-s3-misconfigured.tf"
+
+# For secure S3 bucket (best practices example)
+terraform init
+terraform plan -var-file="terraform-s3-secure.tf"
+terraform apply -var-file="terraform-s3-secure.tf"
 
 # For EC2 misconfigured instance
 terraform init
@@ -89,7 +95,7 @@ These misconfigurations can be detected by various security scanning tools:
 
 1. **DO NOT deploy these in production environments**
 2. **These resources will incur AWS charges**
-3. **Public S3 buckets may be discovered and abused by attackers**
+3. **SECURITY IMPROVEMENT**: S3.3 public write access has been fixed, but other vulnerabilities remain for educational purposes
 4. **EC2 instances with weak security groups are vulnerable to attacks**
 5. **Always destroy resources after testing**: `terraform destroy` or `aws cloudformation delete-stack`
 6. **Monitor your AWS bill and usage during testing**
