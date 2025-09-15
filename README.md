@@ -5,24 +5,30 @@ This repository contains intentionally misconfigured AWS infrastructure files de
 ## Files Included
 
 ### Terraform Files
-1. **terraform-s3-misconfigured.tf** - Misconfigured S3 bucket with public access
-2. **terraform-ec2-misconfigured.tf** - Misconfigured EC2 instance with multiple security vulnerabilities
+1. **terraform-s3-misconfigured.tf** - S3 bucket with S3.3 remediation applied (public write access blocked)
+2. **terraform-s3-secure.tf** - Fully secure S3 bucket configuration example
+3. **terraform-ec2-misconfigured.tf** - Misconfigured EC2 instance with multiple security vulnerabilities
 
 ### CloudFormation Files
-1. **cloudformation-s3-misconfigured.yaml** - Misconfigured S3 bucket using CloudFormation
+1. **cloudformation-s3-secure.yaml** - Secure S3 bucket using CloudFormation
 2. **cloudformation-ec2-misconfigured.yaml** - Misconfigured EC2 instance using CloudFormation
+3. **cloudformation-rds-misconfig.yaml** - Misconfigured RDS instance
+4. **cloudformation-sg-misconfig.yaml** - Misconfigured Security Groups
 
 ## Security Misconfigurations Included
 
 ### S3 Bucket Misconfigurations
-- ❌ Public access block disabled
-- ❌ Public read/write ACL permissions
-- ❌ No server-side encryption
-- ❌ Versioning disabled
+- ✅ **REMEDIATED: Public write access blocked** (S3.3 - Critical security fix applied)
+- ❌ No server-side encryption (Note: Encryption is now enabled in remediated files)
+- ❌ Versioning disabled (Note: Versioning is now enabled in remediated files)
 - ❌ No access logging
-- ❌ Public bucket policy allowing full access
 - ❌ No lifecycle policies
 - ❌ No CloudTrail monitoring
+
+**Security Note**: The critical public write access vulnerability has been remediated. The bucket now:
+- Has all Block Public Access settings enabled
+- Uses private ACL instead of public-read-write
+- Bucket policy removed write permissions (s3:PutObject, s3:DeleteObject)
 
 ### EC2 Instance Misconfigurations
 - ❌ Security groups allowing access from 0.0.0.0/0 on multiple ports (SSH, RDP, HTTP, HTTPS, databases)
@@ -84,6 +90,31 @@ These misconfigurations can be detected by various security scanning tools:
 - **Checkov**
 - **Terrascan**
 - **tfsec**
+
+## S3.3 Remediation Applied
+
+**Critical Security Fix**: The S3 public write access vulnerability (S3.3) has been remediated.
+
+### What was fixed:
+1. **Block Public Access Settings**: All four settings now enabled
+   - `BlockPublicAcls: true`
+   - `IgnorePublicAcls: true` 
+   - `BlockPublicPolicy: true`
+   - `RestrictPublicBuckets: true`
+
+2. **ACL Configuration**: Changed from `public-read-write` to `private`
+
+3. **Bucket Policy**: Removed public write permissions (`s3:PutObject`, `s3:DeleteObject`)
+
+### Verification Commands:
+```bash
+# Verify Block Public Access settings
+aws s3api get-public-access-block --bucket <bucket-name>
+
+# Test that public write access is blocked
+aws s3 cp test-file.txt s3://<bucket-name>/test-file.txt --no-sign-request
+# Should fail with access denied
+```
 
 ## ⚠️ Important Warnings
 

@@ -1,5 +1,6 @@
-# Intentionally Misconfigured S3 Bucket - FOR SECURITY TESTING ONLY
-# This file contains multiple security misconfigurations and should NOT be used in production
+# S3 Bucket Configuration - REMEDIATED FOR PUBLIC WRITE ACCESS
+# This file has been updated to fix the critical S3.3 security misconfiguration
+# Public write access has been blocked while maintaining some misconfigurations for educational purposes
 
 terraform {
   required_providers {
@@ -14,14 +15,14 @@ provider "aws" {
   region = "us-east-2"
 }
 
-# Misconfigured S3 Bucket with public access
+# S3 Bucket with remediated public write access controls
 resource "aws_s3_bucket" "misconfigured_bucket" {
-  bucket = "my-misconfigured-bucket-${random_id.bucket_suffix.hex}"
+  bucket = "my-remediated-bucket-${random_id.bucket_suffix.hex}"
 
   tags = {
-    Name        = "MisconfiguredBucket"
+    Name        = "RemediatedBucket"
     Environment = "SecurityTesting"
-    Purpose     = "Intentionally vulnerable for testing"
+    Purpose     = "Public write access blocked - S3.3 remediation applied"
   }
 }
 
@@ -29,21 +30,23 @@ resource "random_id" "bucket_suffix" {
   byte_length = 8
 }
 
-# MISCONFIGURATION 1: Public access block disabled (allows public access)
+# REMEDIATION APPLIED: Public access block enabled (blocks public write access)
+# This fixes the critical S3.3 security misconfiguration
 resource "aws_s3_bucket_public_access_block" "misconfigured_pab" {
   bucket = aws_s3_bucket.misconfigured_bucket.id
 
-  block_public_acls       = false
-  block_public_policy     = false
-  ignore_public_acls      = false
-  restrict_public_buckets = false
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
 }
 
-# MISCONFIGURATION 2: Public read/write ACL
+# REMEDIATION APPLIED: Private ACL instead of public read/write
+# This fixes the public write access vulnerability
 resource "aws_s3_bucket_acl" "misconfigured_acl" {
   depends_on = [aws_s3_bucket_ownership_controls.s3_bucket_acl_ownership]
   bucket     = aws_s3_bucket.misconfigured_bucket.id
-  acl        = "public-read-write"
+  acl        = "private"
 }
 
 resource "aws_s3_bucket_ownership_controls" "s3_bucket_acl_ownership" {
@@ -67,7 +70,8 @@ resource "aws_s3_bucket_versioning" "misconfigured_versioning" {
 # MISCONFIGURATION 5: No access logging
 # (Logging is intentionally not configured)
 
-# MISCONFIGURATION 6: Public bucket policy allowing full access
+# REMEDIATION APPLIED: Secure bucket policy - removed public write access
+# The policy now only allows public read access, blocking write operations
 resource "aws_s3_bucket_policy" "misconfigured_policy" {
   bucket = aws_s3_bucket.misconfigured_bucket.id
 
@@ -75,13 +79,11 @@ resource "aws_s3_bucket_policy" "misconfigured_policy" {
     Version = "2012-10-17"
     Statement = [
       {
-        Sid       = "PublicReadWrite"
+        Sid       = "PublicReadOnly"
         Effect    = "Allow"
         Principal = "*"
         Action = [
           "s3:GetObject",
-          "s3:PutObject",
-          "s3:DeleteObject",
           "s3:ListBucket"
         ]
         Resource = [
@@ -103,5 +105,5 @@ output "bucket_domain_name" {
 }
 
 output "security_warnings" {
-  value = "WARNING: This bucket is intentionally misconfigured with public access, no encryption, and no versioning!"
+  value = "✅ REMEDIATED: This bucket now blocks public write access! Public access block enabled, private ACL set, and bucket policy restricts write operations."
 }

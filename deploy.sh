@@ -15,11 +15,13 @@ show_help() {
     echo "Usage: $0 [COMMAND] [OPTIONS]"
     echo ""
     echo "Commands:"
-    echo "  terraform-deploy-s3     Deploy misconfigured S3 bucket using Terraform"
+    echo "  terraform-deploy-s3     Deploy S3 bucket (REMEDIATED - public write blocked)"
+    echo "  terraform-deploy-s3-secure Deploy fully secure S3 bucket example"
     echo "  terraform-deploy-ec2    Deploy misconfigured EC2 instance using Terraform"
     echo "  terraform-destroy-s3    Destroy S3 Terraform resources"
     echo "  terraform-destroy-ec2   Destroy EC2 Terraform resources"
     echo "  cf-deploy-s3           Deploy misconfigured S3 bucket using CloudFormation"
+    echo "  cf-deploy-s3-secure    Deploy secure S3 bucket using CloudFormation"
     echo "  cf-deploy-ec2          Deploy misconfigured EC2 instance using CloudFormation"
     echo "  cf-destroy-s3          Destroy S3 CloudFormation stack"
     echo "  cf-destroy-ec2         Destroy EC2 CloudFormation stack"
@@ -27,6 +29,7 @@ show_help() {
     echo ""
     echo "⚠️  WARNING: These resources are intentionally misconfigured and vulnerable!"
     echo "⚠️  Always destroy resources after testing to avoid charges and security risks!"
+    echo "✅  NOTE: S3.3 remediation has been applied - public write access is now blocked"
 }
 
 check_requirements() {
@@ -43,7 +46,7 @@ check_requirements() {
 }
 
 terraform_deploy_s3() {
-    echo "🚀 Deploying misconfigured S3 bucket with Terraform..."
+    echo "🚀 Deploying S3 bucket with S3.3 remediation applied..."
     if ! command -v terraform &> /dev/null; then
         echo "❌ Terraform is required but not installed."
         exit 1
@@ -55,11 +58,35 @@ terraform_deploy_s3() {
     terraform init
     terraform plan
     echo ""
-    echo "⚠️  WARNING: This will create a PUBLICLY ACCESSIBLE S3 bucket!"
+    echo "✅ This will create an S3 bucket with PUBLIC WRITE ACCESS BLOCKED (S3.3 remediation applied)!"
     read -p "Are you sure you want to continue? (yes/no): " confirm
     if [[ $confirm == "yes" ]]; then
         terraform apply -auto-approve
-        echo "✅ S3 bucket deployed. Remember to destroy it when done!"
+        echo "✅ S3 bucket deployed with public write access blocked. Remember to destroy it when done!"
+    else
+        echo "Deployment cancelled."
+    fi
+    cd ..
+}
+
+terraform_deploy_s3_secure() {
+    echo "🚀 Deploying secure S3 bucket with Terraform..."
+    if ! command -v terraform &> /dev/null; then
+        echo "❌ Terraform is required but not installed."
+        exit 1
+    fi
+    
+    mkdir -p terraform-s3-secure-work
+    cp terraform-s3-secure.tf terraform-s3-secure-work/
+    cd terraform-s3-secure-work
+    terraform init
+    terraform plan
+    echo ""
+    echo "✅ This will create a SECURE S3 bucket with all best practices applied!"
+    read -p "Are you sure you want to continue? (yes/no): " confirm
+    if [[ $confirm == "yes" ]]; then
+        terraform apply -auto-approve
+        echo "✅ Secure S3 bucket deployed successfully!"
     else
         echo "Deployment cancelled."
     fi
@@ -101,6 +128,15 @@ terraform_destroy_s3() {
     else
         echo "No S3 Terraform resources found to destroy."
     fi
+    
+    if [[ -d "terraform-s3-secure-work" ]]; then
+        echo "🗑️  Also destroying secure S3 Terraform resources..."
+        cd terraform-s3-secure-work
+        terraform destroy -auto-approve
+        cd ..
+        rm -rf terraform-s3-secure-work
+        echo "✅ Secure S3 resources destroyed."
+    fi
 }
 
 terraform_destroy_ec2() {
@@ -132,6 +168,22 @@ cf_deploy_s3() {
     fi
 }
 
+cf_deploy_s3_secure() {
+    echo "🚀 Deploying secure S3 bucket with CloudFormation..."
+    echo ""
+    echo "✅ This will create a SECURE S3 bucket with all best practices applied!"
+    read -p "Are you sure you want to continue? (yes/no): " confirm
+    if [[ $confirm == "yes" ]]; then
+        aws cloudformation create-stack \
+            --stack-name secure-s3-stack \
+            --template-body file://cloudformation-s3-secure.yaml
+        echo "✅ CloudFormation stack deployment initiated. Check AWS console for progress."
+        echo "✅ Secure S3 bucket will be created!"
+    else
+        echo "Deployment cancelled."
+    fi
+}
+
 cf_deploy_ec2() {
     echo "🚀 Deploying misconfigured EC2 instance with CloudFormation..."
     echo ""
@@ -153,6 +205,10 @@ cf_destroy_s3() {
     echo "🗑️  Destroying S3 CloudFormation stack..."
     aws cloudformation delete-stack --stack-name misconfigured-s3-stack
     echo "✅ CloudFormation stack deletion initiated. Check AWS console for progress."
+    
+    # Also destroy secure stack if it exists
+    echo "🗑️  Also checking for secure S3 CloudFormation stack..."
+    aws cloudformation delete-stack --stack-name secure-s3-stack 2>/dev/null || echo "No secure S3 stack found."
 }
 
 cf_destroy_ec2() {
@@ -166,6 +222,10 @@ case "${1:-help}" in
     terraform-deploy-s3)
         check_requirements
         terraform_deploy_s3
+        ;;
+    terraform-deploy-s3-secure)
+        check_requirements
+        terraform_deploy_s3_secure
         ;;
     terraform-deploy-ec2)
         check_requirements
@@ -182,6 +242,10 @@ case "${1:-help}" in
     cf-deploy-s3)
         check_requirements
         cf_deploy_s3
+        ;;
+    cf-deploy-s3-secure)
+        check_requirements
+        cf_deploy_s3_secure
         ;;
     cf-deploy-ec2)
         check_requirements

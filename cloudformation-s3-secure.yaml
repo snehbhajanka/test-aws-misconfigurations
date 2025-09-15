@@ -1,0 +1,76 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Secure S3 bucket configuration - remediated for public write access blocking"
+
+Parameters:
+  BucketName:
+    Type: String
+    Default: "my-secure-s3-bucket"
+    Description: "Name for the secure S3 bucket"
+
+Resources:
+  # Secure S3 Bucket
+  SecureS3Bucket:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      BucketName: !Sub "${BucketName}-${AWS::StackId}"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        IgnorePublicAcls: true
+        BlockPublicPolicy: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      VersioningConfiguration:
+        Status: Enabled
+      Tags:
+        - Key: Name
+          Value: SecureS3Bucket
+        - Key: Purpose
+          Value: "S3.3 Remediation - Public write access blocked"
+        - Key: SecurityStatus
+          Value: "Remediated"
+
+  # Optional: Secure bucket policy that denies public access
+  SecureBucketPolicy:
+    Type: "AWS::S3::BucketPolicy"
+    Properties:
+      Bucket: !Ref SecureS3Bucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: "DenyPublicWriteAccess"
+            Effect: "Deny"
+            Principal: "*"
+            Action:
+              - "s3:PutObject"
+              - "s3:DeleteObject"
+              - "s3:PutObjectAcl"
+            Resource:
+              - !Sub "${SecureS3Bucket}/*"
+          - Sid: "DenyPublicListAccess"
+            Effect: "Deny"
+            Principal: "*"
+            Action:
+              - "s3:ListBucket"
+            Resource: !Ref SecureS3Bucket
+
+Outputs:
+  BucketName:
+    Description: "Name of the secure S3 bucket"
+    Value: !Ref SecureS3Bucket
+    Export:
+      Name: !Sub "${AWS::StackName}-SecureBucket"
+  
+  BucketArn:
+    Description: "ARN of the secure S3 bucket"
+    Value: !GetAtt SecureS3Bucket.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-SecureBucketArn"
+  
+  SecurityStatus:
+    Description: "Security remediation status"
+    Value: "✅ Public write access blocked - S3.3 remediation complete"
+    Export:
+      Name: !Sub "${AWS::StackName}-SecurityStatus"
