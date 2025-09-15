@@ -1,0 +1,137 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Secure S3 bucket configuration - DEMONSTRATES PROPER SECURITY SETTINGS to address S3.3 misconfiguration"
+
+Parameters:
+  BucketNameSuffix:
+    Type: String
+    Default: "secure-demo"
+    Description: Suffix for the S3 bucket name
+
+Resources:
+  # Secure S3 Bucket with proper access controls
+  SecureS3Bucket:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      BucketName: !Sub "my-secure-bucket-${BucketNameSuffix}-${AWS::AccountId}"
+      # SECURITY FIX: Enable public access block configuration
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true        # FIXED: Block public ACLs
+        IgnorePublicAcls: true       # FIXED: Ignore public ACLs  
+        BlockPublicPolicy: true      # FIXED: Block public bucket policies
+        RestrictPublicBuckets: true  # FIXED: Restrict public bucket access
+      # SECURITY ENHANCEMENT: Enable server-side encryption
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+            BucketKeyEnabled: true
+      # SECURITY ENHANCEMENT: Enable versioning
+      VersioningConfiguration:
+        Status: Enabled  # FIXED: Changed from Suspended/Disabled to Enabled
+      # SECURITY ENHANCEMENT: Enable access logging (optional)
+      LoggingConfiguration:
+        DestinationBucketName: !Ref AccessLogsBucket
+        LogFilePrefix: "access-logs/"
+      # Additional security settings
+      LifecycleConfiguration:
+        Rules:
+          - Id: "DeleteIncompleteMultipartUploads"
+            Status: Enabled
+            AbortIncompleteMultipartUpload:
+              DaysAfterInitiation: 7
+      NotificationConfiguration:
+        CloudWatchConfigurations:
+          - Event: "s3:ObjectCreated:*"
+            CloudWatchConfiguration:
+              LogGroupName: !Ref CloudWatchLogGroup
+      Tags:
+        - Key: "Name"
+          Value: "SecureS3Bucket"
+        - Key: "Environment"
+          Value: "SecurityTesting"
+        - Key: "Purpose"
+          Value: "Demonstrates secure S3 configuration"
+        - Key: "Security"
+          Value: "S3.3-Compliant"
+
+  # Separate bucket for access logs (best practice)
+  AccessLogsBucket:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      BucketName: !Sub "access-logs-${BucketNameSuffix}-${AWS::AccountId}"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        IgnorePublicAcls: true
+        BlockPublicPolicy: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+
+  # SECURITY FIX: Restrictive bucket policy (no public access)
+  SecureBucketPolicy:
+    Type: "AWS::S3::BucketPolicy"
+    Properties:
+      Bucket: !Ref SecureS3Bucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          # Deny all public access
+          - Sid: "DenyPublicAccess"
+            Effect: "Deny"
+            Principal: "*"
+            Action: "s3:*"
+            Resource: 
+              - !Sub "${SecureS3Bucket}/*"
+              - !GetAtt SecureS3Bucket.Arn
+            Condition:
+              Bool:
+                "aws:PrincipalIsAWSService": "false"
+              StringNotEquals:
+                "aws:PrincipalAccount": !Ref "AWS::AccountId"
+          # Allow access only from current account
+          - Sid: "AllowAccountAccess"
+            Effect: "Allow"
+            Principal:
+              AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
+            Action:
+              - "s3:GetObject"
+              - "s3:PutObject"
+              - "s3:DeleteObject"
+              - "s3:ListBucket"
+            Resource:
+              - !Sub "${SecureS3Bucket}/*"
+              - !GetAtt SecureS3Bucket.Arn
+
+  # CloudWatch Log Group for S3 notifications
+  CloudWatchLogGroup:
+    Type: "AWS::Logs::LogGroup"
+    Properties:
+      LogGroupName: !Sub "/aws/s3/${SecureS3Bucket}"
+      RetentionInDays: 30
+
+Outputs:
+  SecureBucketName:
+    Description: "Name of the secure S3 bucket"
+    Value: !Ref SecureS3Bucket
+    Export:
+      Name: !Sub "${AWS::StackName}-SecureBucketName"
+
+  SecureBucketArn:
+    Description: "ARN of the secure S3 bucket"
+    Value: !GetAtt SecureS3Bucket.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-SecureBucketArn"
+
+  SecurityStatus:
+    Description: "Security compliance status"
+    Value: "✅ SUCCESS: This bucket is properly secured against public write access (S3.3 compliant)!"
+
+  SecurityFeatures:
+    Description: "Implemented security features"
+    Value: "✅ Public access blocked, ✅ Private access only, ✅ Encryption enabled, ✅ Versioning enabled, ✅ Access logging configured"
+
+  ComplianceNote:
+    Description: "Compliance information"
+    Value: "This configuration addresses S3.3 security misconfiguration by blocking all public write access while maintaining proper access controls for authorized users."
