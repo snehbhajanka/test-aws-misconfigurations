@@ -1,0 +1,221 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Intentionally Misconfigured S3 Bucket - FOR SECURITY TESTING ONLY'
+
+Parameters:
+  BucketMode:
+    Type: String
+    Default: 'misconfigured'
+    AllowedValues:
+      - 'misconfigured'
+      - 'secure'
+    Description: 'Choose between misconfigured (for testing) or secure configuration'
+
+Conditions:
+  IsMisconfigured: !Equals [!Ref BucketMode, 'misconfigured']
+  IsSecure: !Equals [!Ref BucketMode, 'secure']
+
+Resources:
+  # Random suffix for bucket name uniqueness
+  BucketSuffix:
+    Type: AWS::CloudFormation::CustomResource
+    Properties:
+      ServiceToken: !GetAtt RandomStringFunction.Arn
+      
+  RandomStringFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub '${AWS::StackName}-random-string'
+      Runtime: python3.9
+      Handler: index.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        ZipFile: |
+          import json
+          import random
+          import string
+          import cfnresponse
+          
+          def handler(event, context):
+              try:
+                  if event['RequestType'] in ['Create', 'Update']:
+                      random_string = ''.join(random.choices(string.ascii_lowercase + string.digits, k=16))
+                      response_data = {'RandomString': random_string}
+                      cfnresponse.send(event, context, cfnresponse.SUCCESS, response_data)
+                  else:
+                      cfnresponse.send(event, context, cfnresponse.SUCCESS, {})
+              except Exception as e:
+                  print(f"Error: {str(e)}")
+                  cfnresponse.send(event, context, cfnresponse.FAILED, {})
+
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+  # Main S3 Bucket
+  S3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 
+        - '${Prefix}-${Suffix}'
+        - Prefix: !If [IsMisconfigured, 'misconfigured-bucket', 'secure-bucket']
+          Suffix: !GetAtt BucketSuffix.RandomString
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: !If [IsMisconfigured, false, true]
+        BlockPublicPolicy: !If [IsMisconfigured, false, true]
+        IgnorePublicAcls: !If [IsMisconfigured, false, true]
+        RestrictPublicBuckets: !If [IsMisconfigured, false, true]
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - !If
+            - IsSecure
+            - ServerSideEncryptionByDefault:
+                SSEAlgorithm: AES256
+              BucketKeyEnabled: true
+            - !Ref 'AWS::NoValue'
+      VersioningConfiguration:
+        Status: !If [IsMisconfigured, 'Suspended', 'Enabled']
+      LoggingConfiguration: !If
+        - IsSecure
+        - DestinationBucketName: !Ref AccessLogsBucket
+          LogFilePrefix: 'access-logs/'
+        - !Ref 'AWS::NoValue'
+      LifecycleConfiguration: !If
+        - IsSecure
+        - Rules:
+            - Id: 'transition_to_ia'
+              Status: Enabled
+              Transitions:
+                - TransitionInDays: 30
+                  StorageClass: STANDARD_IA
+                - TransitionInDays: 60
+                  StorageClass: GLACIER
+                - TransitionInDays: 90
+                  StorageClass: DEEP_ARCHIVE
+            - Id: 'delete_incomplete_multipart_uploads'
+              Status: Enabled
+              AbortIncompleteMultipartUpload:
+                DaysAfterInitiation: 7
+        - !Ref 'AWS::NoValue'
+      Tags:
+        - Key: Name
+          Value: !If [IsMisconfigured, 'MisconfiguredBucket', 'SecureBucket']
+        - Key: Environment
+          Value: !If [IsMisconfigured, 'SecurityTesting', 'Production']
+        - Key: Purpose
+          Value: !If [IsMisconfigured, 'Intentionally vulnerable for testing', 'Demonstrates proper S3 security']
+
+  # Access Logs Bucket (only for secure configuration)
+  AccessLogsBucket:
+    Type: AWS::S3::Bucket
+    Condition: IsSecure
+    Properties:
+      BucketName: !Sub 'access-logs-${BucketSuffix.RandomString}'
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      Tags:
+        - Key: Name
+          Value: 'AccessLogsBucket'
+        - Key: Environment
+          Value: 'Production'
+        - Key: Purpose
+          Value: 'Stores access logs for the secure bucket'
+
+  # Bucket Policy - Misconfigured version (allows public access)
+  MisconfiguredBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Condition: IsMisconfigured
+    Properties:
+      Bucket: !Ref S3Bucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: 'PublicReadWrite'
+            Effect: Allow
+            Principal: '*'
+            Action:
+              - 's3:GetObject'
+              - 's3:PutObject'
+              - 's3:DeleteObject'
+              - 's3:ListBucket'
+            Resource:
+              - !GetAtt S3Bucket.Arn
+              - !Sub '${S3Bucket.Arn}/*'
+
+  # Bucket Policy - Secure version (denies public access)
+  SecureBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Condition: IsSecure
+    Properties:
+      Bucket: !Ref S3Bucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: 'DenyPublicAccess'
+            Effect: Deny
+            Principal: '*'
+            Action: 's3:*'
+            Resource:
+              - !GetAtt S3Bucket.Arn
+              - !Sub '${S3Bucket.Arn}/*'
+            Condition:
+              StringNotEquals:
+                'aws:PrincipalServiceName':
+                  - 'cloudtrail.amazonaws.com'
+                  - 'config.amazonaws.com'
+          - Sid: 'AllowSSLRequestsOnly'
+            Effect: Deny
+            Principal: '*'
+            Action: 's3:*'
+            Resource:
+              - !GetAtt S3Bucket.Arn
+              - !Sub '${S3Bucket.Arn}/*'
+            Condition:
+              Bool:
+                'aws:SecureTransport': 'false'
+
+Outputs:
+  BucketName:
+    Description: 'Name of the S3 bucket'
+    Value: !Ref S3Bucket
+    Export:
+      Name: !Sub '${AWS::StackName}-BucketName'
+
+  BucketArn:
+    Description: 'ARN of the S3 bucket'
+    Value: !GetAtt S3Bucket.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-BucketArn'
+
+  BucketDomainName:
+    Description: 'Domain name of the S3 bucket'
+    Value: !GetAtt S3Bucket.DomainName
+    Export:
+      Name: !Sub '${AWS::StackName}-BucketDomainName'
+
+  AccessLogsBucketName:
+    Description: 'Name of the access logs bucket'
+    Condition: IsSecure
+    Value: !Ref AccessLogsBucket
+    Export:
+      Name: !Sub '${AWS::StackName}-AccessLogsBucketName'
+
+  SecurityStatus:
+    Description: 'Security configuration status'
+    Value: !If 
+      - IsMisconfigured
+      - 'WARNING: This bucket is intentionally misconfigured with public access!'
+      - '✅ This bucket is properly configured with blocked public access, encryption, versioning, and logging!'
+    Export:
+      Name: !Sub '${AWS::StackName}-SecurityStatus'
