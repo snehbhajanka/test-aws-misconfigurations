@@ -1,5 +1,7 @@
 # AWS Misconfiguration Test Repository
 
+⚠️ **SECURITY UPDATE**: The S3 bucket configuration has been updated to block public write access as per security remediation requirements. Critical public write vulnerabilities have been resolved while maintaining the educational/testing nature of the repository.
+
 This repository contains intentionally misconfigured AWS infrastructure files designed for security testing, penetration testing, and educational purposes. **DO NOT USE THESE CONFIGURATIONS IN PRODUCTION ENVIRONMENTS.**
 
 ## Files Included
@@ -15,12 +17,12 @@ This repository contains intentionally misconfigured AWS infrastructure files de
 ## Security Misconfigurations Included
 
 ### S3 Bucket Misconfigurations
-- ❌ Public access block disabled
-- ❌ Public read/write ACL permissions
+- ✅ Public access block enabled (SECURITY FIX: Blocks all public access)
+- ✅ Private ACL configured (SECURITY FIX: No public read/write access)
 - ❌ No server-side encryption
 - ❌ Versioning disabled
 - ❌ No access logging
-- ❌ Public bucket policy allowing full access
+- ✅ Public bucket policy removed (SECURITY FIX: No public access policies)
 - ❌ No lifecycle policies
 - ❌ No CloudTrail monitoring
 
@@ -71,6 +73,22 @@ aws cloudformation create-stack \
   --template-body file://cloudformation-ec2-misconfigured.yaml \
   --capabilities CAPABILITY_NAMED_IAM
 ```
+
+## Validation and Security Testing
+
+### S3 Security Validation
+A validation script is provided to verify that the S3 security improvements are working correctly:
+
+```bash
+# After deploying the S3 terraform configuration
+./validate_s3_security.sh <your-bucket-name>
+```
+
+This script will verify:
+- Public access block settings are correctly configured
+- Bucket ACL is set to private
+- Public write access is blocked
+- All remediation requirements from security issue S3.3 are met
 
 ## Security Testing Tools
 
