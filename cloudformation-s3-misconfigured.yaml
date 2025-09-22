@@ -1,0 +1,50 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Secure S3 Bucket Configuration - Blocks Public Write Access"
+
+Parameters:
+  BucketName:
+    Type: String
+    Default: secure-s3-bucket
+    Description: Name for the S3 bucket (will have random suffix appended)
+
+Resources:
+  S3BucketSecure:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "${BucketName}-${AWS::AccountId}-${AWS::Region}"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        IgnorePublicAcls: true
+        BlockPublicPolicy: true
+        RestrictPublicBuckets: true
+      AccessControl: Private
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      VersioningConfiguration:
+        Status: Enabled
+      Tags:
+        - Key: Name
+          Value: SecureS3Bucket
+        - Key: Environment
+          Value: SecurityTesting
+        - Key: Purpose
+          Value: Demonstrates secure S3 configuration
+
+Outputs:
+  BucketName:
+    Description: Name of the created S3 bucket
+    Value: !Ref S3BucketSecure
+    Export:
+      Name: !Sub "${AWS::StackName}-BucketName"
+
+  BucketArn:
+    Description: ARN of the created S3 bucket
+    Value: !GetAtt S3BucketSecure.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-BucketArn"
+
+  SecurityStatus:
+    Description: Security configuration status
+    Value: "SECURE: Public write access is blocked. All recommended security settings are enabled."
