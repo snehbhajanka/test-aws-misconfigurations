@@ -19,11 +19,9 @@ show_help() {
     echo "  terraform-deploy-ec2    Deploy misconfigured EC2 instance using Terraform"
     echo "  terraform-destroy-s3    Destroy S3 Terraform resources"
     echo "  terraform-destroy-ec2   Destroy EC2 Terraform resources"
-    echo "  cf-deploy-s3           Deploy misconfigured S3 bucket using CloudFormation"
-    echo "  cf-deploy-ec2          Deploy misconfigured EC2 instance using CloudFormation"
-    echo "  cf-destroy-s3          Destroy S3 CloudFormation stack"
-    echo "  cf-destroy-ec2         Destroy EC2 CloudFormation stack"
     echo "  help                   Show this help message"
+    echo ""
+    echo "Note: CloudFormation S3 templates are not currently available in this repository"
     echo ""
     echo "⚠️  WARNING: These resources are intentionally misconfigured and vulnerable!"
     echo "⚠️  Always destroy resources after testing to avoid charges and security risks!"
@@ -116,21 +114,21 @@ terraform_destroy_ec2() {
     fi
 }
 
-cf_deploy_s3() {
-    echo "🚀 Deploying misconfigured S3 bucket with CloudFormation..."
-    echo ""
-    echo "⚠️  WARNING: This will create a PUBLICLY ACCESSIBLE S3 bucket!"
-    read -p "Are you sure you want to continue? (yes/no): " confirm
-    if [[ $confirm == "yes" ]]; then
-        aws cloudformation create-stack \
-            --stack-name misconfigured-s3-stack \
-            --template-body file://cloudformation-s3-misconfigured.yaml
-        echo "✅ CloudFormation stack deployment initiated. Check AWS console for progress."
-        echo "✅ Remember to destroy the stack when done!"
-    else
-        echo "Deployment cancelled."
-    fi
-}
+# cf_deploy_s3() {
+#     echo "🚀 Deploying misconfigured S3 bucket with CloudFormation..."
+#     echo ""
+#     echo "⚠️  WARNING: This will create a PUBLICLY ACCESSIBLE S3 bucket!"
+#     read -p "Are you sure you want to continue? (yes/no): " confirm
+#     if [[ $confirm == "yes" ]]; then
+#         aws cloudformation create-stack \
+#             --stack-name misconfigured-s3-stack \
+#             --template-body file://cloudformation-s3-misconfigured.yaml
+#         echo "✅ CloudFormation stack deployment initiated. Check AWS console for progress."
+#         echo "✅ Remember to destroy the stack when done!"
+#     else
+#         echo "Deployment cancelled."
+#     fi
+# }
 
 cf_deploy_ec2() {
     echo "🚀 Deploying misconfigured EC2 instance with CloudFormation..."
@@ -149,11 +147,11 @@ cf_deploy_ec2() {
     fi
 }
 
-cf_destroy_s3() {
-    echo "🗑️  Destroying S3 CloudFormation stack..."
-    aws cloudformation delete-stack --stack-name misconfigured-s3-stack
-    echo "✅ CloudFormation stack deletion initiated. Check AWS console for progress."
-}
+# cf_destroy_s3() {
+#     echo "🗑️  Destroying S3 CloudFormation stack..."
+#     aws cloudformation delete-stack --stack-name misconfigured-s3-stack
+#     echo "✅ CloudFormation stack deletion initiated. Check AWS console for progress."
+# }
 
 cf_destroy_ec2() {
     echo "🗑️  Destroying EC2 CloudFormation stack..."
@@ -179,18 +177,18 @@ case "${1:-help}" in
         check_requirements
         terraform_destroy_ec2
         ;;
-    cf-deploy-s3)
-        check_requirements
-        cf_deploy_s3
-        ;;
+    # cf-deploy-s3)
+    #     check_requirements
+    #     cf_deploy_s3
+    #     ;;
     cf-deploy-ec2)
         check_requirements
         cf_deploy_ec2
         ;;
-    cf-destroy-s3)
-        check_requirements
-        cf_destroy_s3
-        ;;
+    # cf-destroy-s3)
+    #     check_requirements
+    #     cf_destroy_s3
+    #     ;;
     cf-destroy-ec2)
         check_requirements
         cf_destroy_ec2

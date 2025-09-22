@@ -9,20 +9,21 @@ This repository contains intentionally misconfigured AWS infrastructure files de
 2. **terraform-ec2-misconfigured.tf** - Misconfigured EC2 instance with multiple security vulnerabilities
 
 ### CloudFormation Files
-1. **cloudformation-s3-misconfigured.yaml** - Misconfigured S3 bucket using CloudFormation
-2. **cloudformation-ec2-misconfigured.yaml** - Misconfigured EC2 instance using CloudFormation
+1. **cloudformation-rds-misconfig.yaml** - Misconfigured RDS instance using CloudFormation
+2. **cloudformation-sg-misconfig.yaml** - Misconfigured Security Group using CloudFormation
 
 ## Security Misconfigurations Included
 
 ### S3 Bucket Misconfigurations
-- ❌ Public access block disabled
-- ❌ Public read/write ACL permissions
+- ❌ Public access block partially disabled
+- ❌ Public read-only ACL permissions
 - ❌ No server-side encryption
 - ❌ Versioning disabled
 - ❌ No access logging
-- ❌ Public bucket policy allowing full access
+- ❌ Public bucket policy allowing read access
 - ❌ No lifecycle policies
 - ❌ No CloudTrail monitoring
+- ✅ Public write access blocked for security
 
 ### EC2 Instance Misconfigurations
 - ❌ Security groups allowing access from 0.0.0.0/0 on multiple ports (SSH, RDP, HTTP, HTTPS, databases)
@@ -60,16 +61,15 @@ terraform apply -var-file="terraform-ec2-misconfigured.tf"
 
 ### CloudFormation Deployment
 ```bash
-# For S3 misconfigured bucket
+# For RDS misconfigured instance
 aws cloudformation create-stack \
-  --stack-name misconfigured-s3-stack \
-  --template-body file://cloudformation-s3-misconfigured.yaml
+  --stack-name misconfigured-rds-stack \
+  --template-body file://cloudformation-rds-misconfig.yaml
 
-# For EC2 misconfigured instance
+# For Security Group misconfigured
 aws cloudformation create-stack \
-  --stack-name misconfigured-ec2-stack \
-  --template-body file://cloudformation-ec2-misconfigured.yaml \
-  --capabilities CAPABILITY_NAMED_IAM
+  --stack-name misconfigured-sg-stack \
+  --template-body file://cloudformation-sg-misconfig.yaml
 ```
 
 ## Security Testing Tools
@@ -112,8 +112,8 @@ Always remember to clean up resources after testing:
 terraform destroy
 
 # CloudFormation cleanup
-aws cloudformation delete-stack --stack-name misconfigured-s3-stack
-aws cloudformation delete-stack --stack-name misconfigured-ec2-stack
+aws cloudformation delete-stack --stack-name misconfigured-rds-stack
+aws cloudformation delete-stack --stack-name misconfigured-sg-stack
 ```
 
 ## Contributing
