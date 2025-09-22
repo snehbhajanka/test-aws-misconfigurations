@@ -9,18 +9,16 @@ This repository contains intentionally misconfigured AWS infrastructure files de
 2. **terraform-ec2-misconfigured.tf** - Misconfigured EC2 instance with multiple security vulnerabilities
 
 ### CloudFormation Files
-1. **cloudformation-s3-misconfigured.yaml** - Misconfigured S3 bucket using CloudFormation
-2. **cloudformation-ec2-misconfigured.yaml** - Misconfigured EC2 instance using CloudFormation
+1. **cloudformation-rds-misconfig.yaml** - Misconfigured RDS instance
+2. **cloudformation-sg-misconfig.yaml** - Misconfigured Security Groups
 
 ## Security Misconfigurations Included
 
 ### S3 Bucket Misconfigurations
-- ❌ Public access block disabled
-- ❌ Public read/write ACL permissions
+- ✅ Public write access blocked (security fix applied)
 - ❌ No server-side encryption
 - ❌ Versioning disabled
 - ❌ No access logging
-- ❌ Public bucket policy allowing full access
 - ❌ No lifecycle policies
 - ❌ No CloudTrail monitoring
 
@@ -60,16 +58,15 @@ terraform apply -var-file="terraform-ec2-misconfigured.tf"
 
 ### CloudFormation Deployment
 ```bash
-# For S3 misconfigured bucket
+# For RDS misconfigured instance
 aws cloudformation create-stack \
-  --stack-name misconfigured-s3-stack \
-  --template-body file://cloudformation-s3-misconfigured.yaml
+  --stack-name misconfigured-rds-stack \
+  --template-body file://cloudformation-rds-misconfig.yaml
 
-# For EC2 misconfigured instance
+# For Security Group misconfigurations
 aws cloudformation create-stack \
-  --stack-name misconfigured-ec2-stack \
-  --template-body file://cloudformation-ec2-misconfigured.yaml \
-  --capabilities CAPABILITY_NAMED_IAM
+  --stack-name misconfigured-sg-stack \
+  --template-body file://cloudformation-sg-misconfig.yaml
 ```
 
 ## Security Testing Tools
@@ -89,7 +86,7 @@ These misconfigurations can be detected by various security scanning tools:
 
 1. **DO NOT deploy these in production environments**
 2. **These resources will incur AWS charges**
-3. **Public S3 buckets may be discovered and abused by attackers**
+3. **S3 buckets have been secured to block public write access for safety**
 4. **EC2 instances with weak security groups are vulnerable to attacks**
 5. **Always destroy resources after testing**: `terraform destroy` or `aws cloudformation delete-stack`
 6. **Monitor your AWS bill and usage during testing**
@@ -112,8 +109,8 @@ Always remember to clean up resources after testing:
 terraform destroy
 
 # CloudFormation cleanup
-aws cloudformation delete-stack --stack-name misconfigured-s3-stack
-aws cloudformation delete-stack --stack-name misconfigured-ec2-stack
+aws cloudformation delete-stack --stack-name misconfigured-rds-stack
+aws cloudformation delete-stack --stack-name misconfigured-sg-stack
 ```
 
 ## Contributing
