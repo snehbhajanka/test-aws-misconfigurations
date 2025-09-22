@@ -2,6 +2,14 @@
 
 This repository contains intentionally misconfigured AWS infrastructure files designed for security testing, penetration testing, and educational purposes. **DO NOT USE THESE CONFIGURATIONS IN PRODUCTION ENVIRONMENTS.**
 
+## 🔒 SECURITY NOTICE
+
+**CRITICAL ISSUE S3.3 RESOLVED** - Public write access to S3 buckets has been blocked. The following security fixes have been implemented:
+- ✅ Block Public Access settings enabled on all S3 buckets
+- ✅ Public read-write ACLs replaced with private ACLs  
+- ✅ Public bucket policies removed
+- ✅ Secure CloudFormation template created with comprehensive security controls
+
 ## Files Included
 
 ### Terraform Files
@@ -9,20 +17,25 @@ This repository contains intentionally misconfigured AWS infrastructure files de
 2. **terraform-ec2-misconfigured.tf** - Misconfigured EC2 instance with multiple security vulnerabilities
 
 ### CloudFormation Files
-1. **cloudformation-s3-misconfigured.yaml** - Misconfigured S3 bucket using CloudFormation
-2. **cloudformation-ec2-misconfigured.yaml** - Misconfigured EC2 instance using CloudFormation
+1. **terraform-s3-misconfigured.tf** - **SECURITY FIXED:** S3 bucket with proper security controls and blocked public write access
+2. **terraform-ec2-misconfigured.tf** - Misconfigured EC2 instance with multiple security vulnerabilities
+
+### CloudFormation Files
+1. **cloudformation-s3-misconfigured.yaml** - **NEW:** Secure S3 bucket configuration with comprehensive security settings
 
 ## Security Misconfigurations Included
 
-### S3 Bucket Misconfigurations
-- ❌ Public access block disabled
-- ❌ Public read/write ACL permissions
-- ❌ No server-side encryption
-- ❌ Versioning disabled
-- ❌ No access logging
-- ❌ Public bucket policy allowing full access
-- ❌ No lifecycle policies
-- ❌ No CloudTrail monitoring
+### S3 Bucket Security Status
+- ✅ **Public access block ENABLED** (SECURITY FIXED: Issue S3.3)
+- ✅ **Private ACL configured** (SECURITY FIXED: Issue S3.3)
+- ❌ No server-side encryption (for educational purposes)
+- ❌ Versioning disabled (for educational purposes)
+- ✅ **Access logging configured** (CloudFormation template)
+- ✅ **Public bucket policy REMOVED** (SECURITY FIXED: Issue S3.3)
+- ✅ **Lifecycle policies configured** (CloudFormation template)
+- ✅ **CloudWatch monitoring configured** (CloudFormation template)
+
+**CRITICAL SECURITY ISSUE S3.3 RESOLVED:** Public write access to S3 buckets has been blocked.
 
 ### EC2 Instance Misconfigurations
 - ❌ Security groups allowing access from 0.0.0.0/0 on multiple ports (SSH, RDP, HTTP, HTTPS, databases)
