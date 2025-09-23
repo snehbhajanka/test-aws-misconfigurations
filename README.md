@@ -5,8 +5,9 @@ This repository contains intentionally misconfigured AWS infrastructure files de
 ## Files Included
 
 ### Terraform Files
-1. **terraform-s3-misconfigured.tf** - Misconfigured S3 bucket with public access
-2. **terraform-ec2-misconfigured.tf** - Misconfigured EC2 instance with multiple security vulnerabilities
+1. **terraform-s3-misconfigured.tf** - Misconfigured S3 bucket with public access (for security testing)
+2. **terraform-s3-secure.tf** - Secure S3 bucket with proper access controls (production-ready)
+3. **terraform-ec2-misconfigured.tf** - Misconfigured EC2 instance with multiple security vulnerabilities
 
 ### CloudFormation Files
 1. **cloudformation-s3-misconfigured.yaml** - Misconfigured S3 bucket using CloudFormation
@@ -14,7 +15,9 @@ This repository contains intentionally misconfigured AWS infrastructure files de
 
 ## Security Misconfigurations Included
 
-### S3 Bucket Misconfigurations
+### S3 Bucket Configurations
+
+#### Misconfigured S3 Bucket (Security Testing Only)
 - ❌ Public access block disabled
 - ❌ Public read/write ACL permissions
 - ❌ No server-side encryption
@@ -23,6 +26,16 @@ This repository contains intentionally misconfigured AWS infrastructure files de
 - ❌ Public bucket policy allowing full access
 - ❌ No lifecycle policies
 - ❌ No CloudTrail monitoring
+
+#### Secure S3 Bucket (Production Ready)
+- ✅ Public access block enabled (all settings = true)
+- ✅ Private ACL permissions only
+- ✅ Server-side encryption enabled (AES256)
+- ✅ Versioning enabled
+- ✅ Access logging configured
+- ✅ No public bucket policies
+- ✅ Lifecycle policies configured
+- ✅ Follows AWS Security Hub Control ID S3.2
 
 ### EC2 Instance Misconfigurations
 - ❌ Security groups allowing access from 0.0.0.0/0 on multiple ports (SSH, RDP, HTTP, HTTPS, databases)
@@ -47,15 +60,41 @@ This repository contains intentionally misconfigured AWS infrastructure files de
 
 ### Terraform Deployment
 ```bash
-# For S3 misconfigured bucket
+# For S3 misconfigured bucket (testing only)
 terraform init
 terraform plan -var-file="terraform-s3-misconfigured.tf"
 terraform apply -var-file="terraform-s3-misconfigured.tf"
+
+# For S3 secure bucket (production ready)
+terraform init
+terraform plan -var-file="terraform-s3-secure.tf"
+terraform apply -var-file="terraform-s3-secure.tf"
 
 # For EC2 misconfigured instance
 terraform init
 terraform plan -var-file="terraform-ec2-misconfigured.tf"
 terraform apply -var-file="terraform-ec2-misconfigured.tf"
+```
+
+### Using the Deploy Script
+```bash
+# Deploy misconfigured S3 bucket for testing
+./deploy.sh terraform-deploy-s3-misconfig
+
+# Deploy secure S3 bucket for production
+./deploy.sh terraform-deploy-s3-secure
+
+# Deploy misconfigured EC2 instance for testing
+./deploy.sh terraform-deploy-ec2
+
+# Destroy S3 resources (handles both configurations)
+./deploy.sh terraform-destroy-s3
+
+# Destroy EC2 resources
+./deploy.sh terraform-destroy-ec2
+
+# Show help
+./deploy.sh help
 ```
 
 ### CloudFormation Deployment
@@ -84,6 +123,27 @@ These misconfigurations can be detected by various security scanning tools:
 - **Checkov**
 - **Terrascan**
 - **tfsec**
+
+## S3 Security Best Practices
+
+This repository now includes both misconfigured and secure S3 bucket configurations to demonstrate the difference:
+
+### ❌ Misconfigured S3 (terraform-s3-misconfigured.tf)
+- Public access block disabled - allows public access
+- Public read/write ACL - anyone can read/write
+- No encryption - data stored in plain text
+- No versioning - no protection against accidental deletion
+- Public bucket policy - unrestricted access
+
+### ✅ Secure S3 (terraform-s3-secure.tf)
+- **Public access block enabled** - Blocks all public access (AWS Security Hub Control S3.2)
+- **Private ACL only** - Restricts access to authorized users
+- **Server-side encryption** - Data encrypted at rest
+- **Versioning enabled** - Protection against accidental deletion
+- **Access logging** - Audit trail of bucket access
+- **Lifecycle policies** - Cost optimization and data management
+
+The secure configuration addresses **AWS Security Hub Control ID S3.2**: *S3 general purpose buckets should block public read access*
 
 ## ⚠️ Important Warnings
 

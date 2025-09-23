@@ -15,18 +15,20 @@ show_help() {
     echo "Usage: $0 [COMMAND] [OPTIONS]"
     echo ""
     echo "Commands:"
-    echo "  terraform-deploy-s3     Deploy misconfigured S3 bucket using Terraform"
-    echo "  terraform-deploy-ec2    Deploy misconfigured EC2 instance using Terraform"
-    echo "  terraform-destroy-s3    Destroy S3 Terraform resources"
-    echo "  terraform-destroy-ec2   Destroy EC2 Terraform resources"
-    echo "  cf-deploy-s3           Deploy misconfigured S3 bucket using CloudFormation"
-    echo "  cf-deploy-ec2          Deploy misconfigured EC2 instance using CloudFormation"
-    echo "  cf-destroy-s3          Destroy S3 CloudFormation stack"
-    echo "  cf-destroy-ec2         Destroy EC2 CloudFormation stack"
-    echo "  help                   Show this help message"
+    echo "  terraform-deploy-s3-misconfig   Deploy misconfigured S3 bucket using Terraform"
+    echo "  terraform-deploy-s3-secure      Deploy secure S3 bucket using Terraform"
+    echo "  terraform-deploy-ec2            Deploy misconfigured EC2 instance using Terraform"
+    echo "  terraform-destroy-s3            Destroy S3 Terraform resources"
+    echo "  terraform-destroy-ec2           Destroy EC2 Terraform resources"
+    echo "  cf-deploy-s3                    Deploy misconfigured S3 bucket using CloudFormation"
+    echo "  cf-deploy-ec2                   Deploy misconfigured EC2 instance using CloudFormation"
+    echo "  cf-destroy-s3                   Destroy S3 CloudFormation stack"
+    echo "  cf-destroy-ec2                  Destroy EC2 CloudFormation stack"
+    echo "  help                            Show this help message"
     echo ""
-    echo "⚠️  WARNING: These resources are intentionally misconfigured and vulnerable!"
+    echo "⚠️  WARNING: Misconfigured resources are intentionally vulnerable!"
     echo "⚠️  Always destroy resources after testing to avoid charges and security risks!"
+    echo "✅  Use secure configurations for production environments!"
 }
 
 check_requirements() {
@@ -42,16 +44,16 @@ check_requirements() {
     fi
 }
 
-terraform_deploy_s3() {
+terraform_deploy_s3_misconfig() {
     echo "🚀 Deploying misconfigured S3 bucket with Terraform..."
     if ! command -v terraform &> /dev/null; then
         echo "❌ Terraform is required but not installed."
         exit 1
     fi
     
-    mkdir -p terraform-s3-work
-    cp terraform-s3-misconfigured.tf terraform-s3-work/
-    cd terraform-s3-work
+    mkdir -p terraform-s3-misconfig-work
+    cp terraform-s3-misconfigured.tf terraform-s3-misconfig-work/
+    cd terraform-s3-misconfig-work
     terraform init
     terraform plan
     echo ""
@@ -59,7 +61,31 @@ terraform_deploy_s3() {
     read -p "Are you sure you want to continue? (yes/no): " confirm
     if [[ $confirm == "yes" ]]; then
         terraform apply -auto-approve
-        echo "✅ S3 bucket deployed. Remember to destroy it when done!"
+        echo "✅ Misconfigured S3 bucket deployed. Remember to destroy it when done!"
+    else
+        echo "Deployment cancelled."
+    fi
+    cd ..
+}
+
+terraform_deploy_s3_secure() {
+    echo "🚀 Deploying secure S3 bucket with Terraform..."
+    if ! command -v terraform &> /dev/null; then
+        echo "❌ Terraform is required but not installed."
+        exit 1
+    fi
+    
+    mkdir -p terraform-s3-secure-work
+    cp terraform-s3-secure.tf terraform-s3-secure-work/
+    cd terraform-s3-secure-work
+    terraform init
+    terraform plan
+    echo ""
+    echo "✅ This will create a SECURE S3 bucket with public access blocked!"
+    read -p "Do you want to continue? (yes/no): " confirm
+    if [[ $confirm == "yes" ]]; then
+        terraform apply -auto-approve
+        echo "✅ Secure S3 bucket deployed with proper security controls!"
     else
         echo "Deployment cancelled."
     fi
@@ -92,13 +118,35 @@ terraform_deploy_ec2() {
 
 terraform_destroy_s3() {
     echo "🗑️  Destroying S3 Terraform resources..."
+    
+    # Check and destroy misconfigured S3 resources
+    if [[ -d "terraform-s3-misconfig-work" ]]; then
+        cd terraform-s3-misconfig-work
+        terraform destroy -auto-approve
+        cd ..
+        rm -rf terraform-s3-misconfig-work
+        echo "✅ Misconfigured S3 resources destroyed."
+    fi
+    
+    # Check and destroy secure S3 resources
+    if [[ -d "terraform-s3-secure-work" ]]; then
+        cd terraform-s3-secure-work
+        terraform destroy -auto-approve
+        cd ..
+        rm -rf terraform-s3-secure-work
+        echo "✅ Secure S3 resources destroyed."
+    fi
+    
+    # Check legacy terraform-s3-work directory
     if [[ -d "terraform-s3-work" ]]; then
         cd terraform-s3-work
         terraform destroy -auto-approve
         cd ..
         rm -rf terraform-s3-work
-        echo "✅ S3 resources destroyed."
-    else
+        echo "✅ Legacy S3 resources destroyed."
+    fi
+    
+    if [[ ! -d "terraform-s3-misconfig-work" && ! -d "terraform-s3-secure-work" && ! -d "terraform-s3-work" ]]; then
         echo "No S3 Terraform resources found to destroy."
     fi
 }
@@ -163,9 +211,13 @@ cf_destroy_ec2() {
 
 # Main script logic
 case "${1:-help}" in
-    terraform-deploy-s3)
+    terraform-deploy-s3-misconfig)
         check_requirements
-        terraform_deploy_s3
+        terraform_deploy_s3_misconfig
+        ;;
+    terraform-deploy-s3-secure)
+        check_requirements
+        terraform_deploy_s3_secure
         ;;
     terraform-deploy-ec2)
         check_requirements
