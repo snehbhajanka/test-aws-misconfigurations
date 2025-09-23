@@ -13,6 +13,9 @@ This repository contains intentionally misconfigured AWS infrastructure files de
 1. **cloudformation-s3-misconfigured.yaml** - Misconfigured S3 bucket using CloudFormation
 2. **cloudformation-ec2-misconfigured.yaml** - Misconfigured EC2 instance using CloudFormation
 
+### Documentation Files
+1. **S3-SECURITY-COMPARISON.md** - Detailed comparison of misconfigured vs secure S3 configurations
+
 ## Security Misconfigurations Included
 
 ### S3 Bucket Configurations
@@ -144,6 +147,8 @@ This repository now includes both misconfigured and secure S3 bucket configurati
 - **Lifecycle policies** - Cost optimization and data management
 
 The secure configuration addresses **AWS Security Hub Control ID S3.2**: *S3 general purpose buckets should block public read access*
+
+📋 **See [S3-SECURITY-COMPARISON.md](S3-SECURITY-COMPARISON.md) for a detailed side-by-side comparison of all security controls.**
 
 ## ⚠️ Important Warnings
 
