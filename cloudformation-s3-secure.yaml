@@ -1,0 +1,175 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Properly Configured S3 Bucket - SECURE CONFIGURATION. This template shows the correct way to configure S3 buckets with proper security controls that block public write access as recommended by AWS Security Hub control S3.3"
+
+Parameters:
+  BucketNamePrefix:
+    Type: String
+    Default: "my-secure-bucket"
+    Description: "Prefix for the S3 bucket name"
+
+Resources:
+  # Generate a unique suffix for bucket names
+  UniqueId:
+    Type: AWS::CloudFormation::CustomResource
+    Properties:
+      ServiceToken: !GetAtt RandomIdFunction.Arn
+
+  RandomIdFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: python3.9
+      Handler: index.lambda_handler
+      Code:
+        ZipFile: |
+          import boto3
+          import json
+          import random
+          import string
+          import cfnresponse
+          
+          def lambda_handler(event, context):
+              try:
+                  if event['RequestType'] == 'Create' or event['RequestType'] == 'Update':
+                      random_id = ''.join(random.choices(string.ascii_lowercase + string.digits, k=8))
+                      cfnresponse.send(event, context, cfnresponse.SUCCESS, {'RandomId': random_id})
+                  else:
+                      cfnresponse.send(event, context, cfnresponse.SUCCESS, {})
+              except Exception as e:
+                  cfnresponse.send(event, context, cfnresponse.FAILED, {})
+      Role: !GetAtt LambdaExecutionRole.Arn
+
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+  # Secure S3 Bucket with blocked public write access
+  SecureBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "${BucketNamePrefix}-${UniqueId.RandomId}"
+      # SECURITY CONTROL: Block all public access
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      # SECURITY CONTROL: Server-side encryption
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+            BucketKeyEnabled: true
+      # SECURITY CONTROL: Versioning enabled
+      VersioningConfiguration:
+        Status: Enabled
+      # SECURITY CONTROL: Access logging
+      LoggingConfiguration:
+        DestinationBucketName: !Ref AccessLogBucket
+        LogFilePrefix: "access-logs/"
+      # SECURITY CONTROL: Lifecycle configuration for cost optimization
+      LifecycleConfiguration:
+        Rules:
+          - Id: TransitionToIA
+            Status: Enabled
+            Transition:
+              StorageClass: STANDARD_IA
+              TransitionInDays: 30
+          - Id: TransitionToGlacier
+            Status: Enabled
+            Transition:
+              StorageClass: GLACIER
+              TransitionInDays: 90
+      Tags:
+        - Key: Name
+          Value: SecureBucket
+        - Key: Environment
+          Value: SecurityTesting
+        - Key: Purpose
+          Value: Demonstrates proper S3 security configuration
+
+  # Separate bucket for access logs (also secure)
+  AccessLogBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "${BucketNamePrefix}-access-logs-${UniqueId.RandomId}"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      Tags:
+        - Key: Name
+          Value: SecureAccessLogsBucket
+        - Key: Environment
+          Value: SecurityTesting
+        - Key: Purpose
+          Value: Stores access logs for secure bucket
+
+  # SECURITY CONTROL: Restrictive bucket policy (no public access)
+  SecureBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref SecureBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: DenyPublicAccess
+            Effect: Deny
+            Principal: "*"
+            Action: "s3:*"
+            Resource:
+              - !GetAtt SecureBucket.Arn
+              - !Sub "${SecureBucket.Arn}/*"
+            Condition:
+              Bool:
+                "aws:PrincipalIsAWSService": "false"
+          - Sid: AllowSSLRequestsOnly
+            Effect: Deny
+            Principal: "*"
+            Action: "s3:*"
+            Resource:
+              - !GetAtt SecureBucket.Arn
+              - !Sub "${SecureBucket.Arn}/*"
+            Condition:
+              Bool:
+                "aws:SecureTransport": "false"
+
+Outputs:
+  SecureBucketName:
+    Description: "Name of the secure S3 bucket"
+    Value: !Ref SecureBucket
+    Export:
+      Name: !Sub "${AWS::StackName}-SecureBucketName"
+
+  SecureBucketArn:
+    Description: "ARN of the secure S3 bucket"
+    Value: !GetAtt SecureBucket.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-SecureBucketArn"
+
+  SecureBucketDomainName:
+    Description: "Domain name of the secure S3 bucket"
+    Value: !GetAtt SecureBucket.DomainName
+    Export:
+      Name: !Sub "${AWS::StackName}-SecureBucketDomainName"
+
+  SecurityStatus:
+    Description: "Security configuration status"
+    Value: "✅ This bucket is properly configured with blocked public write access, encryption, versioning, and access logging!"
+
+  ComplianceInfo:
+    Description: "Compliance information"
+    Value: "This configuration meets AWS Security Hub control S3.3 - S3 general purpose buckets should block public write access"
