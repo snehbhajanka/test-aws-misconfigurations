@@ -1,0 +1,67 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "S3 Bucket with Public Write Access Blocked - FOR SECURITY TESTING ONLY"
+
+Parameters:
+  BucketSuffix:
+    Type: String
+    Default: "cf-test-bucket"
+    Description: "Suffix for the bucket name to ensure uniqueness"
+
+Resources:
+  # S3 Bucket with blocked public write access
+  S3Bucket:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      BucketName: !Sub "misconfigured-s3-${BucketSuffix}-${AWS::AccountId}"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        IgnorePublicAcls: true
+        BlockPublicPolicy: true
+        RestrictPublicBuckets: true
+      AccessControl: "Private"
+      VersioningConfiguration:
+        Status: "Disabled"
+      Tags:
+        - Key: "Name"
+          Value: "MisconfiguredS3Bucket"
+        - Key: "Environment"
+          Value: "SecurityTesting"
+        - Key: "Purpose"
+          Value: "Intentionally configured for testing - public write access blocked"
+
+  # Bucket policy that allows only read access (no write operations)
+  S3BucketPolicy:
+    Type: "AWS::S3::BucketPolicy"
+    Properties:
+      Bucket: !Ref S3Bucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: "PublicReadOnly"
+            Effect: "Allow"
+            Principal: "*"
+            Action:
+              - "s3:GetObject"
+              - "s3:ListBucket"
+            Resource:
+              - !GetAtt S3Bucket.Arn
+              - !Sub "${S3Bucket.Arn}/*"
+
+Outputs:
+  BucketName:
+    Description: "Name of the S3 bucket"
+    Value: !Ref S3Bucket
+    Export:
+      Name: !Sub "${AWS::StackName}-BucketName"
+
+  BucketArn:
+    Description: "ARN of the S3 bucket"
+    Value: !GetAtt S3Bucket.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-BucketArn"
+
+  SecurityStatus:
+    Description: "Security configuration status"
+    Value: "FIXED: Public write access blocked through Block Public Access settings and restricted bucket policy"
+    Export:
+      Name: !Sub "${AWS::StackName}-SecurityStatus"

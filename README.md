@@ -2,6 +2,15 @@
 
 This repository contains intentionally misconfigured AWS infrastructure files designed for security testing, penetration testing, and educational purposes. **DO NOT USE THESE CONFIGURATIONS IN PRODUCTION ENVIRONMENTS.**
 
+## 🔒 Security Fix Applied
+
+**S3 Public Write Access Issue Resolved**: The S3 configurations have been updated to block public write access as per security best practices:
+- ✅ Public Access Block settings enabled (all four options: BlockPublicAcls, IgnorePublicAcls, BlockPublicPolicy, RestrictPublicBuckets)
+- ✅ Bucket ACL changed from "public-read-write" to "private"  
+- ✅ Bucket policy restricted to read-only access (removed s3:PutObject and s3:DeleteObject permissions)
+
+This addresses the critical security misconfiguration where S3 buckets allowed public write access, which could lead to data breaches, unauthorized data manipulation, and compliance violations.
+
 ## Files Included
 
 ### Terraform Files
@@ -15,12 +24,12 @@ This repository contains intentionally misconfigured AWS infrastructure files de
 ## Security Misconfigurations Included
 
 ### S3 Bucket Misconfigurations
-- ❌ Public access block disabled
-- ❌ Public read/write ACL permissions
+- ✅ Public access block enabled (blocks public write access)
+- ✅ Private ACL permissions (blocks public write access)
 - ❌ No server-side encryption
 - ❌ Versioning disabled
 - ❌ No access logging
-- ❌ Public bucket policy allowing full access
+- ✅ Restricted bucket policy (blocks public write access)
 - ❌ No lifecycle policies
 - ❌ No CloudTrail monitoring
 
