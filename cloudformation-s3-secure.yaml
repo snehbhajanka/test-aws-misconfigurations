@@ -1,0 +1,116 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Secured S3 Bucket with Block Public Access enabled - Security fixes applied"
+
+Parameters:
+  BucketNamePrefix:
+    Type: String
+    Default: "secure-s3-bucket"
+    Description: "Prefix for the S3 bucket name"
+
+Resources:
+  # Generate random suffix for bucket name
+  RandomBucketSuffix:
+    Type: AWS::CloudFormation::CustomResource
+    Properties:
+      ServiceToken: !GetAtt BucketNamingFunction.Arn
+
+  BucketNamingFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "${AWS::StackName}-bucket-naming"
+      Runtime: python3.9
+      Handler: index.handler
+      Role: !GetAtt BucketNamingRole.Arn
+      Code:
+        ZipFile: |
+          import json
+          import random
+          import string
+          import cfnresponse
+          
+          def handler(event, context):
+              try:
+                  if event['RequestType'] == 'Delete':
+                      cfnresponse.send(event, context, cfnresponse.SUCCESS, {})
+                      return
+                      
+                  suffix = ''.join(random.choices(string.ascii_lowercase + string.digits, k=8))
+                  cfnresponse.send(event, context, cfnresponse.SUCCESS, {'BucketSuffix': suffix})
+              except Exception as e:
+                  cfnresponse.send(event, context, cfnresponse.FAILED, {})
+
+  BucketNamingRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+  # Secured S3 Bucket
+  SecureS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "${BucketNamePrefix}-${RandomBucketSuffix.BucketSuffix}"
+      # SECURITY FIX 1: Enable Block Public Access settings
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      # SECURITY FIX 2: Private ACL (default is private, but being explicit)
+      AccessControl: Private
+      Tags:
+        - Key: Name
+          Value: SecuredBucket
+        - Key: Environment
+          Value: SecurityTesting
+        - Key: Purpose
+          Value: Previously vulnerable, now secured
+
+  # SECURITY FIX 3: Bucket policy that denies insecure transport
+  SecureBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref SecureS3Bucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: DenyInsecureConnections
+            Effect: Deny
+            Principal: "*"
+            Action: "s3:*"
+            Resource:
+              - !Sub "${SecureS3Bucket}/*"
+              - !GetAtt SecureS3Bucket.Arn
+            Condition:
+              Bool:
+                "aws:SecureTransport": "false"
+
+Outputs:
+  BucketName:
+    Description: "Name of the secured S3 bucket"
+    Value: !Ref SecureS3Bucket
+    Export:
+      Name: !Sub "${AWS::StackName}-BucketName"
+
+  BucketArn:
+    Description: "ARN of the secured S3 bucket"
+    Value: !GetAtt SecureS3Bucket.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-BucketArn"
+
+  BucketDomainName:
+    Description: "Domain name of the secured S3 bucket"
+    Value: !GetAtt SecureS3Bucket.DomainName
+    Export:
+      Name: !Sub "${AWS::StackName}-BucketDomainName"
+
+  SecurityStatus:
+    Description: "Security status of the bucket"
+    Value: "SECURED: This bucket blocks public write access and uses secure configurations!"
