@@ -1,0 +1,96 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Intentionally Misconfigured S3 Bucket - FOR SECURITY TESTING ONLY. This template contains multiple security misconfigurations and should NOT be used in production."
+
+Parameters:
+  BucketSuffix:
+    Type: String
+    Default: "misconfig-demo"
+    Description: "Suffix for the S3 bucket name to ensure uniqueness"
+
+Resources:
+  # Misconfigured S3 Bucket with public access
+  MisconfiguredBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "my-misconfigured-bucket-${BucketSuffix}"
+      
+      # MISCONFIGURATION 1: Public access block DISABLED (allows public access)
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false          # Should be true
+        BlockPublicPolicy: false        # Should be true  
+        IgnorePublicAcls: false        # Should be true
+        RestrictPublicBuckets: false   # Should be true
+      
+      # MISCONFIGURATION 2: Public read/write access control
+      AccessControl: PublicReadWrite    # Should be Private
+      
+      # MISCONFIGURATION 3: No server-side encryption
+      # BucketEncryption is intentionally not configured
+      
+      # MISCONFIGURATION 4: No versioning enabled
+      VersioningConfiguration:
+        Status: Suspended  # Should be Enabled
+      
+      # MISCONFIGURATION 5: No access logging
+      # LoggingConfiguration is intentionally not configured
+      
+      # MISCONFIGURATION 6: No lifecycle policies
+      # LifecycleConfiguration is intentionally not configured
+      
+      Tags:
+        - Key: Name
+          Value: MisconfiguredBucket
+        - Key: Environment
+          Value: SecurityTesting
+        - Key: Purpose
+          Value: "Intentionally vulnerable for testing"
+
+  # MISCONFIGURATION 7: Public bucket policy allowing full access
+  MisconfiguredBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref MisconfiguredBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: PublicReadWrite
+            Effect: Allow
+            Principal: "*"
+            Action:
+              - "s3:GetObject"
+              - "s3:PutObject" 
+              - "s3:DeleteObject"
+              - "s3:ListBucket"
+            Resource:
+              - !GetAtt MisconfiguredBucket.Arn
+              - !Sub "${MisconfiguredBucket.Arn}/*"
+
+Outputs:
+  BucketName:
+    Description: "Name of the misconfigured S3 bucket"
+    Value: !Ref MisconfiguredBucket
+    Export:
+      Name: !Sub "${AWS::StackName}-BucketName"
+
+  BucketDomainName:
+    Description: "Domain name of the misconfigured S3 bucket"
+    Value: !GetAtt MisconfiguredBucket.DomainName
+    Export:
+      Name: !Sub "${AWS::StackName}-BucketDomainName"
+
+  SecurityWarnings:
+    Description: "Security warnings about this bucket"
+    Value: "WARNING: This bucket is intentionally misconfigured with public access, no encryption, and no versioning!"
+    
+  MisconfigurationsList:
+    Description: "List of security misconfigurations in this bucket"
+    Value: |
+      SECURITY MISCONFIGURATIONS:
+      ❌ Public access block disabled (allows public access)
+      ❌ Public read/write ACL permissions
+      ❌ No server-side encryption
+      ❌ Versioning disabled
+      ❌ No access logging
+      ❌ Public bucket policy allowing full access
+      ❌ No lifecycle policies
+      ❌ No CloudTrail monitoring
