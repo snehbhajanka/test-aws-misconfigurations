@@ -16,6 +16,10 @@ This repository contains intentionally misconfigured AWS infrastructure files de
 4. **cloudformation-rds-misconfig.yaml** - Misconfigured RDS instance
 5. **cloudformation-sg-misconfig.yaml** - Misconfigured Security Group
 
+### Utility Scripts
+1. **deploy.sh** - Deployment script for both vulnerable and secure configurations
+2. **validate-s3-security.sh** - Security validation and comparison tool
+
 ## Security Misconfigurations Included
 
 ### S3 Bucket Misconfigurations (Vulnerable)
@@ -109,6 +113,15 @@ aws cloudformation create-stack \
 # Destroy resources
 ./deploy.sh terraform-destroy-s3-secure
 ./deploy.sh cf-destroy-s3-secure
+```
+
+### Security Validation
+```bash
+# Compare vulnerable vs secure configurations
+./validate-s3-security.sh compare
+
+# Check S3.3 control compliance
+./validate-s3-security.sh check-s3-3
 ```
 
 ## Security Testing Tools
