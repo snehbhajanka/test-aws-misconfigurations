@@ -1,0 +1,50 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Intentionally Misconfigured S3 Bucket - FOR SECURITY TESTING ONLY. This template contains security misconfigurations and should NOT be used in production."
+
+Parameters:
+  BucketSuffix:
+    Type: String
+    Default: "test-bucket"
+    Description: "Suffix for the S3 bucket name to ensure uniqueness"
+
+Resources:
+  # S3 Bucket with controlled misconfigurations
+  MisconfiguredS3Bucket:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      BucketName: !Sub "my-misconfigured-bucket-${BucketSuffix}-${AWS::AccountId}"
+      # FIXED: Public access blocked to prevent public write access
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        IgnorePublicAcls: true
+        BlockPublicPolicy: true
+        RestrictPublicBuckets: true
+      # MISCONFIGURATION: Versioning disabled (kept for other testing)
+      VersioningConfiguration:
+        Status: Suspended
+      # MISCONFIGURATION: No encryption configured (kept for other testing)
+      # No BucketEncryption property = no default encryption
+      Tags:
+        - Key: "Name"
+          Value: "MisconfiguredBucket"
+        - Key: "Environment"
+          Value: "SecurityTesting"
+        - Key: "Purpose"
+          Value: "Intentionally vulnerable for testing"
+
+Outputs:
+  BucketName:
+    Description: "Name of the created S3 bucket"
+    Value: !Ref MisconfiguredS3Bucket
+    Export:
+      Name: !Sub "${AWS::StackName}-BucketName"
+  
+  BucketArn:
+    Description: "ARN of the created S3 bucket"
+    Value: !GetAtt MisconfiguredS3Bucket.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-BucketArn"
+  
+  SecurityWarnings:
+    Description: "Security status of the bucket"
+    Value: "FIXED: Public write access blocked. Some misconfigurations remain: no encryption and no versioning (intentional for other testing purposes)."
