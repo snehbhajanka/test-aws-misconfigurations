@@ -7,14 +7,22 @@ This repository contains intentionally misconfigured AWS infrastructure files de
 ### Terraform Files
 1. **terraform-s3-misconfigured.tf** - Misconfigured S3 bucket with public access
 2. **terraform-ec2-misconfigured.tf** - Misconfigured EC2 instance with multiple security vulnerabilities
+3. **terraform-s3-secure.tf** - ✅ **SECURE** S3 bucket configuration (S3.3 compliant)
 
 ### CloudFormation Files
 1. **cloudformation-s3-misconfigured.yaml** - Misconfigured S3 bucket using CloudFormation
 2. **cloudformation-ec2-misconfigured.yaml** - Misconfigured EC2 instance using CloudFormation
+3. **cloudformation-s3-secure.yaml** - ✅ **SECURE** S3 bucket configuration (S3.3 compliant)
+4. **cloudformation-rds-misconfig.yaml** - Misconfigured RDS instance
+5. **cloudformation-sg-misconfig.yaml** - Misconfigured Security Group
+
+### Utility Scripts
+1. **deploy.sh** - Deployment script for both vulnerable and secure configurations
+2. **validate-s3-security.sh** - Security validation and comparison tool
 
 ## Security Misconfigurations Included
 
-### S3 Bucket Misconfigurations
+### S3 Bucket Misconfigurations (Vulnerable)
 - ❌ Public access block disabled
 - ❌ Public read/write ACL permissions
 - ❌ No server-side encryption
@@ -23,6 +31,16 @@ This repository contains intentionally misconfigured AWS infrastructure files de
 - ❌ Public bucket policy allowing full access
 - ❌ No lifecycle policies
 - ❌ No CloudTrail monitoring
+
+### S3 Bucket Secure Configuration (✅ Best Practices)
+- ✅ **Block Public Access enabled (S3.3 compliant)**
+- ✅ **Private ACL configuration**
+- ✅ **Account-restricted bucket policy (no public access)**
+- ✅ **Server-side encryption enabled**
+- ✅ **Versioning enabled**
+- ✅ **Access logging configured**
+- ✅ **Lifecycle policies implemented**
+- ✅ **Addresses AWS Security Hub S3.3 control**
 
 ### EC2 Instance Misconfigurations
 - ❌ Security groups allowing access from 0.0.0.0/0 on multiple ports (SSH, RDP, HTTP, HTTPS, databases)
@@ -47,10 +65,15 @@ This repository contains intentionally misconfigured AWS infrastructure files de
 
 ### Terraform Deployment
 ```bash
-# For S3 misconfigured bucket
+# For MISCONFIGURED S3 bucket (vulnerable)
 terraform init
 terraform plan -var-file="terraform-s3-misconfigured.tf"
 terraform apply -var-file="terraform-s3-misconfigured.tf"
+
+# For SECURE S3 bucket (S3.3 compliant)
+terraform init
+terraform plan -var-file="terraform-s3-secure.tf"
+terraform apply -var-file="terraform-s3-secure.tf"
 
 # For EC2 misconfigured instance
 terraform init
@@ -60,16 +83,45 @@ terraform apply -var-file="terraform-ec2-misconfigured.tf"
 
 ### CloudFormation Deployment
 ```bash
-# For S3 misconfigured bucket
+# For MISCONFIGURED S3 bucket (vulnerable)
 aws cloudformation create-stack \
   --stack-name misconfigured-s3-stack \
   --template-body file://cloudformation-s3-misconfigured.yaml
+
+# For SECURE S3 bucket (S3.3 compliant)
+aws cloudformation create-stack \
+  --stack-name secure-s3-stack \
+  --template-body file://cloudformation-s3-secure.yaml
 
 # For EC2 misconfigured instance
 aws cloudformation create-stack \
   --stack-name misconfigured-ec2-stack \
   --template-body file://cloudformation-ec2-misconfigured.yaml \
   --capabilities CAPABILITY_NAMED_IAM
+```
+
+### Using the Deploy Script
+```bash
+# Deploy vulnerable resources for testing
+./deploy.sh terraform-deploy-s3        # Deploy misconfigured S3
+./deploy.sh cf-deploy-s3              # Deploy misconfigured S3 via CloudFormation
+
+# Deploy secure resources (production-ready)
+./deploy.sh terraform-deploy-s3-secure # Deploy secure S3 (S3.3 compliant)
+./deploy.sh cf-deploy-s3-secure       # Deploy secure S3 via CloudFormation
+
+# Destroy resources
+./deploy.sh terraform-destroy-s3-secure
+./deploy.sh cf-destroy-s3-secure
+```
+
+### Security Validation
+```bash
+# Compare vulnerable vs secure configurations
+./validate-s3-security.sh compare
+
+# Check S3.3 control compliance
+./validate-s3-security.sh check-s3-3
 ```
 
 ## Security Testing Tools
@@ -102,6 +154,34 @@ These misconfigurations can be detected by various security scanning tools:
 - Infrastructure security scanning
 - DevSecOps pipeline testing
 - Compliance testing
+
+## 🛡️ AWS Security Hub S3.3 Control Implementation
+
+This repository now includes **secure S3 configurations** that address AWS Security Hub control **S3.3: S3 general purpose buckets should block public write access**.
+
+### What is S3.3?
+AWS Security Hub S3.3 control ensures that S3 buckets block public write access to prevent:
+- Unauthorized data uploads
+- Data corruption by malicious actors
+- Compliance violations (PCI DSS, NIST 800-53)
+- Reputation damage from hosting malicious content
+
+### Secure Implementation Features:
+✅ **Block Public Access Configuration**:
+- `BlockPublicAcls: true`
+- `IgnorePublicAcls: true` 
+- `BlockPublicPolicy: true`
+- `RestrictPublicBuckets: true`
+
+✅ **Private ACL** instead of public-read-write
+✅ **Account-restricted bucket policy** instead of wildcard Principal
+✅ **Additional security enhancements**: encryption, versioning, logging
+
+### Files:
+- `terraform-s3-secure.tf` - Terraform secure configuration
+- `cloudformation-s3-secure.yaml` - CloudFormation secure configuration
+
+Compare these with the vulnerable versions to understand the differences!
 
 ## Cleanup
 
