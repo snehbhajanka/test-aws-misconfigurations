@@ -9,18 +9,17 @@ This repository contains intentionally misconfigured AWS infrastructure files de
 2. **terraform-ec2-misconfigured.tf** - Misconfigured EC2 instance with multiple security vulnerabilities
 
 ### CloudFormation Files
-1. **cloudformation-s3-misconfigured.yaml** - Misconfigured S3 bucket using CloudFormation
+1. **cloudformation-s3-misconfigured.yaml** - S3 bucket with public write access blocked (fixed)
 2. **cloudformation-ec2-misconfigured.yaml** - Misconfigured EC2 instance using CloudFormation
 
 ## Security Misconfigurations Included
 
 ### S3 Bucket Misconfigurations
-- ❌ Public access block disabled
-- ❌ Public read/write ACL permissions
+- ✅ Public write access blocked (public access block enabled, private ACL, read-only policy)
+- ❌ Public read access still enabled (for testing purposes)
 - ❌ No server-side encryption
 - ❌ Versioning disabled
 - ❌ No access logging
-- ❌ Public bucket policy allowing full access
 - ❌ No lifecycle policies
 - ❌ No CloudTrail monitoring
 

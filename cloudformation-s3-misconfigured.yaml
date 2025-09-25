@@ -1,0 +1,62 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Misconfigured S3 Bucket - FOR SECURITY TESTING ONLY (Fixed: Public write access blocked)'
+
+Parameters:
+  BucketNamePrefix:
+    Type: String
+    Default: 'misconfigured-s3-bucket'
+    Description: 'Prefix for the S3 bucket name'
+
+Resources:
+  MisconfiguredS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub '${BucketNamePrefix}-${AWS::AccountId}-${AWS::Region}'
+      PublicAccessBlockConfiguration:  # Fixed: Added public access block
+        BlockPublicAcls: true
+        BlockPublicPolicy: false  # Allow read-only policy for testing
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: false  # Allow read-only policy for testing
+      Tags:
+        - Key: Name
+          Value: MisconfiguredS3Bucket
+        - Key: Environment
+          Value: SecurityTesting
+        - Key: Purpose
+          Value: Intentionally vulnerable for testing
+
+  # SECURITY FIX: Read-only bucket policy (blocks public write access)
+  S3BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref MisconfiguredS3Bucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: PublicReadOnly  # Fixed: Changed to read-only access
+            Effect: Allow
+            Principal: '*'
+            Action:
+              - 's3:GetObject'
+              - 's3:ListBucket'
+              # Removed: s3:PutObject, s3:DeleteObject - blocks public write access
+            Resource:
+              - !GetAtt MisconfiguredS3Bucket.Arn
+              - !Sub '${MisconfiguredS3Bucket.Arn}/*'
+
+Outputs:
+  BucketName:
+    Description: 'Name of the S3 bucket'
+    Value: !Ref MisconfiguredS3Bucket
+    Export:
+      Name: !Sub '${AWS::StackName}-BucketName'
+
+  BucketArn:
+    Description: 'ARN of the S3 bucket'
+    Value: !GetAtt MisconfiguredS3Bucket.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-BucketArn'
+
+  SecurityWarnings:
+    Description: 'Security status of the bucket'
+    Value: 'SECURITY FIXED: This bucket now blocks public write access. Public read access is still enabled for testing purposes.'
