@@ -15,12 +15,11 @@ This repository contains intentionally misconfigured AWS infrastructure files de
 ## Security Misconfigurations Included
 
 ### S3 Bucket Misconfigurations
-- ❌ Public access block disabled
-- ❌ Public read/write ACL permissions
+- ✅ Public write access blocked (security fix applied)
+- ❌ Public read access still enabled (for testing purposes)
 - ❌ No server-side encryption
 - ❌ Versioning disabled
 - ❌ No access logging
-- ❌ Public bucket policy allowing full access
 - ❌ No lifecycle policies
 - ❌ No CloudTrail monitoring
 
@@ -47,15 +46,15 @@ This repository contains intentionally misconfigured AWS infrastructure files de
 
 ### Terraform Deployment
 ```bash
-# For S3 misconfigured bucket
+# For S3 bucket (now with improved security - no public write access)
 terraform init
-terraform plan -var-file="terraform-s3-misconfigured.tf"
-terraform apply -var-file="terraform-s3-misconfigured.tf"
+terraform plan
+terraform apply
 
 # For EC2 misconfigured instance
 terraform init
-terraform plan -var-file="terraform-ec2-misconfigured.tf"
-terraform apply -var-file="terraform-ec2-misconfigured.tf"
+terraform plan
+terraform apply
 ```
 
 ### CloudFormation Deployment
@@ -89,7 +88,7 @@ These misconfigurations can be detected by various security scanning tools:
 
 1. **DO NOT deploy these in production environments**
 2. **These resources will incur AWS charges**
-3. **Public S3 buckets may be discovered and abused by attackers**
+3. **S3 buckets have public read access but write access is blocked for security**
 4. **EC2 instances with weak security groups are vulnerable to attacks**
 5. **Always destroy resources after testing**: `terraform destroy` or `aws cloudformation delete-stack`
 6. **Monitor your AWS bill and usage during testing**
