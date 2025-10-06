@@ -32,6 +32,10 @@ Thumbs.db
 *.tmp
 *.temp
 
+# Work directories
+terraform-s3-work/
+terraform-ec2-work/
+
 # Backup files
 *.bak
 *.backup
