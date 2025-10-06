@@ -29,14 +29,14 @@ resource "random_id" "bucket_suffix" {
   byte_length = 8
 }
 
-# MISCONFIGURATION 1: Public access block disabled (allows public access)
+# FIXED: Public access block enabled (blocks public write access - S3.3 control)
 resource "aws_s3_bucket_public_access_block" "misconfigured_pab" {
   bucket = aws_s3_bucket.misconfigured_bucket.id
 
-  block_public_acls       = false
-  block_public_policy     = false
-  ignore_public_acls      = false
-  restrict_public_buckets = false
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
 }
 
 # MISCONFIGURATION 2: Public read/write ACL
@@ -103,5 +103,5 @@ output "bucket_domain_name" {
 }
 
 output "security_warnings" {
-  value = "WARNING: This bucket is intentionally misconfigured with public access, no encryption, and no versioning!"
+  value = "WARNING: This bucket has Block Public Access enabled (fixed), but still has other misconfigurations: public read/write ACL, public bucket policy, no encryption, and no versioning!"
 }
