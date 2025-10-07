@@ -15,7 +15,7 @@ This repository contains intentionally misconfigured AWS infrastructure files de
 ## Security Misconfigurations Included
 
 ### S3 Bucket Misconfigurations
-- ❌ Public access block disabled
+- ✅ Public access block enabled (FIXED)
 - ❌ Public read/write ACL permissions
 - ❌ No server-side encryption
 - ❌ Versioning disabled
